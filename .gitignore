@@ -1,0 +1,11 @@
+# Environment files with secrets
+.env
+.env.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Build output
+.next/
