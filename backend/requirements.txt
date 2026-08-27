@@ -1,6 +1,7 @@
 fastapi>=0.115
 uvicorn[standard]
 pydantic-settings
+email-validator
 sqlalchemy[asyncio]
 asyncpg
 alembic
@@ -11,3 +12,6 @@ pytest
 pytest-asyncio
 ruff
 mypy
+passlib==1.7.4
+bcrypt==3.2.2
+python-jose[cryptography]==3.3.0

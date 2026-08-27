@@ -1,6 +1,13 @@
 import asyncio
 from logging.config import fileConfig
 
+from app.db.models import Base
+
+from app.db.models import Base
+
+# Set target metadata for 'autogenerate' support
+target_metadata = Base.metadata
+
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
@@ -18,7 +25,7 @@ if config.config_file_name is not None:
 # No SQLAlchemy ORM models yet — schema is written directly as SQL in the
 # migration files, so there's nothing for autogenerate to diff against.
 # If/when declarative models are introduced, set this to Base.metadata.
-target_metadata = None
+target_metadata = Base.metadata
 
 # Pull the real connection string from the app's own settings/.env rather
 # than duplicating it in alembic.ini.

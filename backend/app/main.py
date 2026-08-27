@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.session import get_db
+from app.routers import appointments, auth, employees, visitors
 
 settings = get_settings()
 
@@ -20,6 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Sprint 2's contract, drafted Day 4. Handlers are stubs (HTTP 501) until
+# Sprint 2 implements them against the DB — the point right now is the
+# request/response shapes visible at /docs, for the Thursday contract review.
+app.include_router(auth.router)
+app.include_router(employees.router)
+app.include_router(visitors.router)
+app.include_router(appointments.router)
+
 
 @app.get("/healthz")
 def healthz():
@@ -29,9 +38,9 @@ def healthz():
 @app.get("/db-check")
 async def db_check(db: AsyncSession = Depends(get_db)):
     """
-    Temporary verification endpoint for Day 2 only — proves get_db yields a
-    working async session end-to-end. Safe to delete once Day 3's schema
-    migration gives you a real table to query instead.
+    Temporary verification endpoint from Day 2 — proves get_db yields a
+    working async session end-to-end. Safe to delete once Sprint 2 gives
+    you a real endpoint to test against instead.
     """
     result = await db.execute(text("SELECT 1"))
     return {"db_reachable": result.scalar() == 1}
