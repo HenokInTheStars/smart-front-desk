@@ -18,7 +18,7 @@ from app.schemas.auth import (
 )
 
 # 1. NEW: Import the security tools we just built
-from app.security import verify_password, create_access_token
+from app.security import verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -73,5 +73,5 @@ async def logout(payload: RefreshRequest) -> None:
 
 
 @router.get("/me", response_model=CurrentUser)
-async def me() -> CurrentUser:
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=_NOT_IMPLEMENTED)
+async def me(current_user: User = Depends(get_current_user)) -> CurrentUser:
+    return current_user

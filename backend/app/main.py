@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.session import get_db
-from app.routers import appointments, auth, employees, visitors
+from app.routers import appointments, auth, employees, visitors, schedules, users
 
 settings = get_settings()
 
@@ -15,7 +15,7 @@ app = FastAPI(title="Smart Front Desk API")
 # other origin from calling this API, even though the API itself is reachable.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +28,8 @@ app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(visitors.router)
 app.include_router(appointments.router)
+app.include_router(schedules.router)
+app.include_router(users.router)
 
 
 @app.get("/healthz")

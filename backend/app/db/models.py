@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+# pyrefly: ignore [missing-import]
 from sqlalchemy import (
     Boolean,
     Column,
@@ -23,7 +24,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(String, default="employee", nullable=False)  # admin, receptionist, employee
+    role = Column(String, default="Other", nullable=False)  # Super Admin, Admin, Host, Reception, Other
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -42,6 +43,8 @@ class Employee(Base):
 
     user = relationship("User", back_populates="employee_profile")
     appointments = relationship("Appointment", back_populates="host")
+    shifts = relationship("HostShift", back_populates="employee", cascade="all, delete-orphan")
+    holidays = relationship("HostHoliday", back_populates="employee", cascade="all, delete-orphan")
 
 
 class Visitor(Base):
@@ -71,3 +74,25 @@ class Appointment(Base):
 
     visitor = relationship("Visitor", back_populates="appointments")
     host = relationship("Employee", back_populates="appointments")
+
+class HostShift(Base):
+    __tablename__ = "host_shifts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    day_of_week = Column(Integer, nullable=False)  # 0=Monday, 6=Sunday
+    start_time = Column(String, nullable=False)  # "08:00"
+    end_time = Column(String, nullable=False)  # "17:00"
+
+    employee = relationship("Employee", back_populates="shifts")
+
+
+class HostHoliday(Base):
+    __tablename__ = "host_holidays"
+
+    id = Column(Integer, primary_key=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    date = Column(String, nullable=False)  # "YYYY-MM-DD"
+    reason = Column(String, nullable=True)
+
+    employee = relationship("Employee", back_populates="holidays")

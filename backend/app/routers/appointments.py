@@ -1,5 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
-
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select
+from app.db.session import get_db
+from app.db.models import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentOut, AppointmentUpdate
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
@@ -8,8 +12,18 @@ _NOT_IMPLEMENTED = "Not implemented yet \u2014 ships in Sprint 2"
 
 
 @router.get("", response_model=list[AppointmentOut])
-async def list_appointments(skip: int = 0, limit: int = 50) -> list[AppointmentOut]:
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=_NOT_IMPLEMENTED)
+async def list_appointments(
+    skip: int = 0, 
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db)
+) -> list[AppointmentOut]:
+    result = await db.execute(
+        select(Appointment)
+        .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
+        .order_by(Appointment.scheduled_time.desc())
+        .offset(skip).limit(limit)
+    )
+    return result.scalars().all()
 
 
 @router.post("", response_model=AppointmentOut, status_code=status.HTTP_201_CREATED)

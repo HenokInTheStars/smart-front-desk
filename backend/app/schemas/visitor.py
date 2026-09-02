@@ -1,30 +1,38 @@
 from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict
+from typing import Optional
 
 
 class VisitorBase(BaseModel):
-    first_name: str
-    last_name: str
-    company: str | None = None
-    email: EmailStr | None = None
-    phone: str | None = None
+    full_name: str
+    company: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class VisitorCreate(VisitorBase):
     pass
 
 
+class CheckInRequest(BaseModel):
+    firstName: Optional[str] = ""
+    lastName: Optional[str] = ""
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    purpose: Optional[str] = None
+    notes: Optional[str] = None
+    hostName: Optional[str] = None
+
+
 class VisitorUpdate(BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
-    company: str | None = None
-    email: EmailStr | None = None
-    phone: str | None = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    company: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
 
 
 class VisitorOut(VisitorBase):
     model_config = ConfigDict(from_attributes=True)
-
-    id: str
+    id: int
     created_at: datetime

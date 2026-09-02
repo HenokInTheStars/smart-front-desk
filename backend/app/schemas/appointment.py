@@ -1,32 +1,25 @@
 from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, EmailStr
-
+from pydantic import BaseModel, ConfigDict
+from app.schemas.visitor import VisitorOut
+from app.schemas.employee import EmployeeOut
 
 class AppointmentBase(BaseModel):
-    host_employee_id: str
-    visitor_id: str | None = None
-    visitor_name: str | None = None
-    visitor_email: EmailStr | None = None
-    scheduled_start: datetime
-    scheduled_end: datetime | None = None
-
+    visitor_id: int
+    host_id: int
+    scheduled_time: datetime
+    status: str = "scheduled"
+    notes: str | None = None
 
 class AppointmentCreate(AppointmentBase):
     pass
 
-
 class AppointmentUpdate(BaseModel):
-    host_employee_id: str | None = None
-    scheduled_start: datetime | None = None
-    scheduled_end: datetime | None = None
+    scheduled_time: datetime | None = None
     status: str | None = None
-
+    notes: str | None = None
 
 class AppointmentOut(AppointmentBase):
     model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    status: str
-    created_by: str | None = None
-    created_at: datetime
+    id: int
+    visitor: VisitorOut | None = None
+    host: EmployeeOut | None = None

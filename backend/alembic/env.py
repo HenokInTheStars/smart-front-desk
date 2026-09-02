@@ -5,6 +5,9 @@ from app.db.models import Base
 
 from app.db.models import Base
 
+from app.db.models import Base, User, Employee, Visitor, Appointment
+
+
 # Set target metadata for 'autogenerate' support
 target_metadata = Base.metadata
 
