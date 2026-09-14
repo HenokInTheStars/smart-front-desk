@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.db.session import AsyncSessionLocal
 from app.db.models import User, Employee
-from app.security import get_password_hash
+from app.core.security import get_password_hash
 from sqlalchemy import select
 
 async def seed():
@@ -30,11 +30,16 @@ async def seed():
             print("Admin user already exists.")
             
         # Seed Employees
+        from app.data.employee_directory import EMPLOYEE_DIRECTORY
         print("Seeding employees...")
         employees_data = [
-            {"employee_id": "EMP001", "full_name": "Sarah Jenkins", "department": "Design", "phone": "555-0101"},
-            {"employee_id": "EMP002", "full_name": "David Chen", "department": "IT", "phone": "555-0102"},
-            {"employee_id": "EMP003", "full_name": "Michael Ross", "department": "Legal", "phone": "555-0103"}
+            {
+                "employee_id": emp["employee_id"], 
+                "full_name": emp["name"], 
+                "department": f"{emp['department']} ({emp['job_title']})", 
+                "phone": f"555-010{i+1}"
+            }
+            for i, emp in enumerate(EMPLOYEE_DIRECTORY)
         ]
         for emp_data in employees_data:
             result = await session.execute(select(Employee).where(Employee.employee_id == emp_data["employee_id"]))
@@ -43,6 +48,11 @@ async def seed():
                 new_emp = Employee(**emp_data)
                 session.add(new_emp)
                 print(f"Added employee {emp_data['full_name']}")
+            else:
+                emp.full_name = emp_data["full_name"]
+                emp.department = emp_data["department"]
+                emp.phone = emp_data["phone"]
+                print(f"Updated employee {emp_data['full_name']}")
         
         await session.commit()
         print("Employee seeding completed.")

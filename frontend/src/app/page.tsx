@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
+import { loginUser, getMe } from '@/lib/api/auth';
+
 export default function LoginSample() {
   const router = useRouter();
   const [email, setEmail] = useState('admin@example.com');
@@ -16,49 +18,38 @@ export default function LoginSample() {
     setMessage('');
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('access_token', data.access_token);
-        
-        try {
-          const meRes = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${data.access_token}` }
-          });
-          if (meRes.ok) {
-            const meData = await meRes.json();
-            setMessage(`✓ Login Successful! Redirecting...`);
-            setTimeout(() => {
-              if (meData.role === 'Super Admin') {
-                router.push('/superadmin');
-              } else if (meData.role === 'Admin') {
-                router.push('/admin');
-              } else if (meData.role === 'Reception') {
-                router.push('/reception');
-              } else {
-                router.push('/dashboard');
-              }
-            }, 700);
-            return;
-          }
-        } catch {
-          // Fallback
-        }
-
+      const data = await loginUser(email, password);
+      localStorage.setItem('access_token', data.access_token);
+      
+      try {
+        const meData = await getMe(data.access_token);
         setMessage(`✓ Login Successful! Redirecting...`);
         setTimeout(() => {
-          router.push('/dashboard');
-        }, 900);
-      } else {
-        setMessage('✗ Login failed. Invalid credentials.');
+          if (meData.role === 'Super Admin') {
+            router.push('/superadmin');
+          } else if (meData.role === 'Admin') {
+            router.push('/admin');
+          } else if (meData.role === 'Reception') {
+            router.push('/reception');
+          } else {
+            router.push('/dashboard');
+          }
+        }, 700);
+        return;
+      } catch {
+        // Fallback
       }
-    } catch (error) {
-      setMessage('✗ Error connecting to the server.');
+
+      setMessage(`✓ Login Successful! Redirecting...`);
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 900);
+    } catch (error: any) {
+      if (error.message.includes('Invalid credentials')) {
+        setMessage('✗ Login failed. Invalid credentials.');
+      } else {
+        setMessage('✗ Error connecting to the server.');
+      }
     } finally {
       setIsLoading(false);
     }

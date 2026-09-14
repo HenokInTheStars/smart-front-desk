@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Clock, CheckCircle2, XCircle, Search, 
   RefreshCw, Building, AlertCircle, ArrowUpRight, ShieldCheck, 
-  LogIn, LogOut, Phone, Mail, FileText, BadgeCheck, Printer
+  LogIn, LogOut, Phone, Mail, FileText, BadgeCheck, Printer,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 interface Appointment {
@@ -40,6 +41,43 @@ export default function ReceptionDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Sorting States
+  const [queueSortField, setQueueSortField] = useState<'name' | 'host' | 'time' | 'status'>('time');
+  const [queueSortDirection, setQueueSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const [expectedSortField, setExpectedSortField] = useState<'name' | 'host' | 'time' | 'status'>('time');
+  const [expectedSortDirection, setExpectedSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const [directorySortField, setDirectorySortField] = useState<'name' | 'dept'>('name');
+  const [directorySortDirection, setDirectorySortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleQueueSort = (field: 'name' | 'host' | 'time' | 'status') => {
+    if (queueSortField === field) {
+      setQueueSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setQueueSortField(field);
+      setQueueSortDirection(field === 'time' ? 'desc' : 'asc');
+    }
+  };
+
+  const handleExpectedSort = (field: 'name' | 'host' | 'time' | 'status') => {
+    if (expectedSortField === field) {
+      setExpectedSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setExpectedSortField(field);
+      setExpectedSortDirection(field === 'time' ? 'desc' : 'asc');
+    }
+  };
+
+  const handleDirectorySort = (field: 'name' | 'dept') => {
+    if (directorySortField === field) {
+      setDirectorySortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setDirectorySortField(field);
+      setDirectorySortDirection('asc');
+    }
+  };
 
   // Manual Check-In Form State
   const [manualForm, setManualForm] = useState({
@@ -149,6 +187,56 @@ export default function ReceptionDashboard() {
   const checkedInVisitors = filteredAppointments.filter(a => a.status.toLowerCase() === 'checked in' || a.status.toLowerCase() === 'active');
   const expectedVisitors = filteredAppointments.filter(a => a.status.toLowerCase() === 'scheduled' || a.status.toLowerCase() === 'pending');
 
+  const sortedCheckedInVisitors = [...checkedInVisitors].sort((a, b) => {
+    let comparison = 0;
+    if (queueSortField === 'name') {
+      const nameA = a.visitor?.full_name || '';
+      const nameB = b.visitor?.full_name || '';
+      comparison = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+    } else if (queueSortField === 'host') {
+      const hostA = a.host?.full_name || '';
+      const hostB = b.host?.full_name || '';
+      comparison = hostA.localeCompare(hostB, undefined, { sensitivity: 'base' });
+    } else if (queueSortField === 'time') {
+      const timeA = a.scheduled_time ? new Date(a.scheduled_time).getTime() : 0;
+      const timeB = b.scheduled_time ? new Date(b.scheduled_time).getTime() : 0;
+      comparison = timeA - timeB;
+    } else if (queueSortField === 'status') {
+      comparison = (a.status || '').localeCompare(b.status || '');
+    }
+    return queueSortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const sortedExpectedVisitors = [...expectedVisitors].sort((a, b) => {
+    let comparison = 0;
+    if (expectedSortField === 'name') {
+      const nameA = a.visitor?.full_name || '';
+      const nameB = b.visitor?.full_name || '';
+      comparison = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+    } else if (expectedSortField === 'host') {
+      const hostA = a.host?.full_name || '';
+      const hostB = b.host?.full_name || '';
+      comparison = hostA.localeCompare(hostB, undefined, { sensitivity: 'base' });
+    } else if (expectedSortField === 'time') {
+      const timeA = a.scheduled_time ? new Date(a.scheduled_time).getTime() : 0;
+      const timeB = b.scheduled_time ? new Date(b.scheduled_time).getTime() : 0;
+      comparison = timeA - timeB;
+    } else if (expectedSortField === 'status') {
+      comparison = (a.status || '').localeCompare(b.status || '');
+    }
+    return expectedSortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  const sortedHosts = [...hosts].sort((a, b) => {
+    let comparison = 0;
+    if (directorySortField === 'name') {
+      comparison = (a.full_name || '').localeCompare(b.full_name || '', undefined, { sensitivity: 'base' });
+    } else if (directorySortField === 'dept') {
+      comparison = (a.department || '').localeCompare(b.department || '', undefined, { sensitivity: 'base' });
+    }
+    return directorySortDirection === 'asc' ? comparison : -comparison;
+  });
+
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
       
@@ -246,10 +334,17 @@ export default function ReceptionDashboard() {
             </button>
 
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-              <span className="text-xs font-semibold text-slate-700">Front Desk Station 01</span>
+              <span className="text-xs font-semibold text-slate-700">Receptionist Desk</span>
               <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shadow-xs">
-                FD
+                RD
               </div>
+              <button
+                onClick={() => { localStorage.removeItem('access_token'); window.location.href = '/'; }}
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut size={16} />
+              </button>
             </div>
           </div>
         </header>
@@ -271,17 +366,40 @@ export default function ReceptionDashboard() {
             {/* TAB 1: LIVE LOBBY QUEUE */}
             {currentTab === 'live' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">Live Lobby Queue</h2>
                     <p className="text-xs text-slate-500 mt-0.5">Visitors currently checked-in at kiosk or waiting in reception area.</p>
                   </div>
-                  <button 
-                    onClick={() => setCurrentTab('manual')}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
-                  >
-                    <UserPlus size={14} /> Check In Guest
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shadow-2xs">
+                      <span className="text-[11px] font-semibold text-slate-500 px-1.5">Sort:</span>
+                      <button
+                        onClick={() => handleQueueSort('time')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                          queueSortField === 'time' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Clock size={12} />
+                        Time {queueSortField === 'time' && (queueSortDirection === 'asc' ? 'Oldest' : 'Newest')}
+                      </button>
+                      <button
+                        onClick={() => handleQueueSort('name')}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                          queueSortField === 'name' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <Users size={12} />
+                        Visitor {queueSortField === 'name' && (queueSortDirection === 'asc' ? 'A-Z' : 'Z-A')}
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentTab('manual')}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                    >
+                      <UserPlus size={14} /> Check In Guest
+                    </button>
+                  </div>
                 </div>
 
                 {/* Queue Table */}
@@ -289,16 +407,36 @@ export default function ReceptionDashboard() {
                   <table className="w-full text-left text-sm text-slate-600">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 font-semibold">Visitor</th>
-                        <th className="px-6 py-3 font-semibold">Meeting Host</th>
-                        <th className="px-6 py-3 font-semibold">Check-in Time</th>
-                        <th className="px-6 py-3 font-semibold">Status</th>
+                        <th onClick={() => handleQueueSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Visitor</span>
+                            {queueSortField === 'name' ? (queueSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleQueueSort('host')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Meeting Host</span>
+                            {queueSortField === 'host' ? (queueSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleQueueSort('time')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Check-in Time</span>
+                            {queueSortField === 'time' ? (queueSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleQueueSort('status')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Status</span>
+                            {queueSortField === 'status' ? (queueSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
                         <th className="px-6 py-3 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {checkedInVisitors.length > 0 ? (
-                        checkedInVisitors.map((apt) => (
+                      {sortedCheckedInVisitors.length > 0 ? (
+                        sortedCheckedInVisitors.map((apt) => (
                           <tr key={apt.id} className="hover:bg-slate-50/80">
                             <td className="px-6 py-4">
                               <div className="font-semibold text-slate-900">{apt.visitor?.full_name || 'Guest Visitor'}</div>
@@ -456,24 +594,67 @@ export default function ReceptionDashboard() {
             {/* TAB 3: EXPECTED VISITORS */}
             {currentTab === 'expected' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">Expected & Scheduled Visitors</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Pre-registered appointments and scheduled arrivals for today.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Expected & Scheduled Visitors</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Pre-registered appointments and scheduled arrivals for today.</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shadow-2xs">
+                    <span className="text-[11px] font-semibold text-slate-500 px-1.5">Sort:</span>
+                    <button
+                      onClick={() => handleExpectedSort('time')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                        expectedSortField === 'time' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Clock size={12} />
+                      Time {expectedSortField === 'time' && (expectedSortDirection === 'asc' ? 'Earliest' : 'Latest')}
+                    </button>
+                    <button
+                      onClick={() => handleExpectedSort('name')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                        expectedSortField === 'name' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Users size={12} />
+                      Visitor {expectedSortField === 'name' && (expectedSortDirection === 'asc' ? 'A-Z' : 'Z-A')}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
                   <table className="w-full text-left text-sm text-slate-600">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 font-semibold">Visitor</th>
-                        <th className="px-6 py-3 font-semibold">Host</th>
-                        <th className="px-6 py-3 font-semibold">Scheduled Time</th>
-                        <th className="px-6 py-3 font-semibold">Status</th>
+                        <th onClick={() => handleExpectedSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Visitor</span>
+                            {expectedSortField === 'name' ? (expectedSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleExpectedSort('host')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Host</span>
+                            {expectedSortField === 'host' ? (expectedSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleExpectedSort('time')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Scheduled Time</span>
+                            {expectedSortField === 'time' ? (expectedSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
+                        <th onClick={() => handleExpectedSort('status')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
+                          <div className="flex items-center gap-1.5">
+                            <span>Status</span>
+                            {expectedSortField === 'status' ? (expectedSortDirection === 'asc' ? <ArrowUp size={13} className="text-emerald-600" /> : <ArrowDown size={13} className="text-emerald-600" />) : <ArrowUpDown size={12} className="text-slate-400" />}
+                          </div>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
-                      {expectedVisitors.length > 0 ? (
-                        expectedVisitors.map((apt) => (
+                      {sortedExpectedVisitors.length > 0 ? (
+                        sortedExpectedVisitors.map((apt) => (
                           <tr key={apt.id} className="hover:bg-slate-50/80">
                             <td className="px-6 py-3.5 font-medium text-slate-900">
                               {apt.visitor?.full_name || 'Guest'}
@@ -507,13 +688,36 @@ export default function ReceptionDashboard() {
             {/* TAB 4: HOST DIRECTORY */}
             {currentTab === 'directory' && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">Host Employee Directory</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">Quick look-up for employee extensions and host availability.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">Host Employee Directory</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Quick look-up for employee extensions and host availability.</p>
+                  </div>
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200 text-xs shadow-2xs">
+                    <span className="text-[11px] font-semibold text-slate-500 px-1.5">Sort:</span>
+                    <button
+                      onClick={() => handleDirectorySort('name')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                        directorySortField === 'name' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Users size={12} />
+                      Name {directorySortField === 'name' && (directorySortDirection === 'asc' ? 'A-Z' : 'Z-A')}
+                    </button>
+                    <button
+                      onClick={() => handleDirectorySort('dept')}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-colors flex items-center gap-1 ${
+                        directorySortField === 'dept' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Building size={12} />
+                      Department {directorySortField === 'dept' && (directorySortDirection === 'asc' ? 'A-Z' : 'Z-A')}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {hosts.map(h => (
+                  {sortedHosts.map(h => (
                     <div key={h.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex items-center gap-3.5">
                       <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-bold text-emerald-700 text-sm shrink-0">
                         {h.full_name.split(' ').map(n => n[0]).join('')}

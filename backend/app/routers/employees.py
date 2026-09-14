@@ -4,7 +4,7 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models import Employee
 from app.schemas.employee import EmployeeCreate, EmployeeOut, EmployeeUpdate
-from app.ai_routing import EMPLOYEE_DIRECTORY
+from app.data.employee_directory import EMPLOYEE_DIRECTORY
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 

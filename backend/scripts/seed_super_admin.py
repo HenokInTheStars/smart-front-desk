@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 
-from app.config import get_settings
+from app.core.config import get_settings
 from app.db.models import User
-from app.security import get_password_hash
+from app.core.security import get_password_hash
 from sqlalchemy.ext.asyncio import create_async_engine
 
 settings = get_settings()

@@ -26,5 +26,19 @@ class CurrentUser(BaseModel):
     id: int
     email: EmailStr
     full_name: Optional[str] = None
+    employee_id: Optional[str] = None
+    department: Optional[str] = None
+    numeric_host_id: Optional[int] = None
     is_active: bool = True
-    role: str = "employee"
+    role: str = "Host"
+    permissions: list[str] = []
+    phone: Optional[str] = None
+    availability_status: int = 1
+
+# 6. The data shape expected when updating the profile
+class ProfileUpdateRequest(BaseModel):
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    availability_status: Optional[int] = None
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None

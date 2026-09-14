@@ -36,3 +36,26 @@ class VisitorOut(VisitorBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     created_at: datetime
+
+
+class ScheduleSlotRequest(BaseModel):
+    firstName: Optional[str] = ""
+    lastName: Optional[str] = ""
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    purpose: Optional[str] = None
+    notes: Optional[str] = None
+    host_id: Optional[int] = None
+    host_name: Optional[str] = None
+    scheduled_time: str
+
+
+class ScheduleSlotResponse(BaseModel):
+    message: str
+    appointment_id: int
+    visitor_id: int
+    visitor_name: str
+    host_name: str
+    host_department: str
+    scheduled_time: str
+    status: str

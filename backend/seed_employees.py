@@ -2,7 +2,7 @@ import asyncio
 from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.db.models import Employee
-from app.ai_routing import EMPLOYEE_DIRECTORY
+from app.data.employee_directory import EMPLOYEE_DIRECTORY
 
 async def sync():
     async with AsyncSessionLocal() as db:

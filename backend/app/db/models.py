@@ -25,6 +25,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, default="Other", nullable=False)  # Super Admin, Admin, Host, Reception, Other
+    permissions = Column(Text, default="", nullable=True)  # Comma-separated or custom capability keys
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -40,6 +41,7 @@ class Employee(Base):
     full_name = Column(String, index=True, nullable=False)
     department = Column(String, nullable=False)
     phone = Column(String, nullable=True)
+    availability_status = Column(Integer, default=1, nullable=False)
 
     user = relationship("User", back_populates="employee_profile")
     appointments = relationship("Appointment", back_populates="host")
