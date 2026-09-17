@@ -80,9 +80,9 @@ async def calculate_host_availability_and_nearest_slot(
     unavailability_reason = None
     current_shift_status = "Off Shift"
 
-    if employee.availability_status == 4:
+    if employee.availability_status in (2, 4):
         is_available = False
-        unavailability_reason = "Host is currently marked as Not Available"
+        unavailability_reason = "Host is currently marked as Not Available for guests"
         current_shift_status = "Not Available"
     elif target_date_str in holiday_map:
         is_available = False

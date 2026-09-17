@@ -33,7 +33,7 @@ target_metadata = Base.metadata
 # Pull the real connection string from the app's own settings/.env rather
 # than duplicating it in alembic.ini.
 settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.resolved_database_url)
 
 
 def run_migrations_offline() -> None:

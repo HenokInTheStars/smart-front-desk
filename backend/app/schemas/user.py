@@ -1,5 +1,6 @@
 from typing import Optional, List, Dict
 from pydantic import BaseModel, EmailStr, ConfigDict
+from uuid import UUID
 
 # Standard System Permissions Catalog
 ALL_SYSTEM_PERMISSIONS = [
@@ -59,28 +60,23 @@ ALL_SYSTEM_PERMISSIONS = [
     }
 ]
 
-# Default Permissions assigned by Role Preset
 DEFAULT_ROLE_PERMISSIONS: Dict[str, List[str]] = {
-    "Super Admin": [
+    "SUPER_ADMIN": [
         "view_queue", "manual_checkin", "print_badge", "admit_visitor",
         "manage_schedules", "pre_register", "view_reports", "manage_users", "system_logs"
     ],
-    "Admin": [
+    "ADMIN": [
         "view_queue", "manual_checkin", "print_badge", "view_reports", "manage_users", "system_logs"
     ],
-    "Reception": [
+    "RECEPTION": [
         "view_queue", "manual_checkin", "print_badge", "pre_register"
     ],
-    "Host": [
+    "HOST": [
         "admit_visitor", "manage_schedules", "pre_register"
     ],
-    "Security": [
-        "view_queue", "print_badge", "system_logs"
-    ],
-    "Auditor": [
-        "view_reports", "system_logs"
-    ],
-    "Other": []
+    "OTHER": [
+        "view_queue", "print_badge", "system_logs", "view_reports"
+    ]
 }
 
 
@@ -94,7 +90,7 @@ def get_effective_permissions(role: str, permissions_str: Optional[str] = None) 
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    role: str = "Host"
+    role: str = "HOST"
     permissions: Optional[List[str]] = None
 
 
@@ -105,7 +101,7 @@ class UserRoleUpdate(BaseModel):
 
 
 class UserOut(BaseModel):
-    id: int
+    id: UUID
     email: EmailStr
     role: str
     permissions: List[str] = []

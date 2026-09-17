@@ -1,39 +1,51 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentOut, AppointmentUpdate
+from app.schemas.responses import StandardResponseEnvelope
 from app.services.sms_service import send_sms
+import uuid
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
 _NOT_IMPLEMENTED = "Not implemented yet — ships in Sprint 2"
 
 
-@router.get("", response_model=list[AppointmentOut])
+@router.get("")
 async def list_appointments(
+    request: Request,
     skip: int = 0, 
     limit: int = 100,
-    host_id: Optional[int] = None,
+    host_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
-) -> list[AppointmentOut]:
+):
     query = (
         select(Appointment)
         .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
         .order_by(Appointment.scheduled_time.desc())
     )
     if host_id is not None:
-        query = query.where(Appointment.host_id == host_id)
+        query = query.where(Appointment.host_id == uuid.UUID(host_id))
 
     result = await db.execute(query.offset(skip).limit(limit))
-    return result.scalars().all()
+    apts = result.scalars().all()
+    
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message="Fetched appointments",
+        requestId=request.state.request_id,
+        data=[AppointmentOut.model_validate(a) for a in apts]
+    )
 
 
-@router.post("", response_model=AppointmentOut, status_code=status.HTTP_201_CREATED)
-async def create_appointment(payload: AppointmentCreate, db: AsyncSession = Depends(get_db)) -> AppointmentOut:
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_appointment(request: Request, payload: AppointmentCreate, db: AsyncSession = Depends(get_db)):
     scheduled_dt = payload.scheduled_time
     if scheduled_dt.tzinfo is not None:
         scheduled_dt = scheduled_dt.replace(tzinfo=None)
@@ -56,33 +68,50 @@ async def create_appointment(payload: AppointmentCreate, db: AsyncSession = Depe
         .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
         .where(Appointment.id == new_apt.id)
     )
-    return res.scalar_one()
+    
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-201",
+        statusCode=201,
+        status="SUCCESS",
+        message="Created appointment",
+        requestId=request.state.request_id,
+        data=AppointmentOut.model_validate(res.scalar_one())
+    )
 
 
-@router.get("/{appointment_id}", response_model=AppointmentOut)
-async def get_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)) -> AppointmentOut:
+@router.get("/{appointment_id}")
+async def get_appointment(request: Request, appointment_id: str, db: AsyncSession = Depends(get_db)):
     res = await db.execute(
         select(Appointment)
         .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
-        .where(Appointment.id == appointment_id)
+        .where(Appointment.id == uuid.UUID(appointment_id))
     )
     apt = res.scalar_one_or_none()
     if not apt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
-    return apt
+        
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message="Fetched appointment",
+        requestId=request.state.request_id,
+        data=AppointmentOut.model_validate(apt)
+    )
 
 
-@router.patch("/{appointment_id}", response_model=AppointmentOut)
+@router.patch("/{appointment_id}")
 async def update_appointment(
-    appointment_id: int,
+    request: Request,
+    appointment_id: str,
     payload: AppointmentUpdate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
-) -> AppointmentOut:
+):
     res = await db.execute(
         select(Appointment)
         .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
-        .where(Appointment.id == appointment_id)
+        .where(Appointment.id == uuid.UUID(appointment_id))
     )
     apt = res.scalar_one_or_none()
     if not apt:
@@ -94,6 +123,8 @@ async def update_appointment(
         apt.status = payload.status
     if payload.notes is not None:
         apt.notes = payload.notes
+    if payload.host_id is not None:
+        apt.host_id = payload.host_id
     if payload.scheduled_time is not None:
         scheduled_dt = payload.scheduled_time
         if scheduled_dt.tzinfo is not None:
@@ -103,13 +134,13 @@ async def update_appointment(
     await db.commit()
     await db.refresh(apt)
 
-    if old_status != "Completed" and payload.status == "Completed":
+    if old_status != "COMPLETED" and payload.status == "COMPLETED":
         next_apt_res = await db.execute(
             select(Appointment)
-            .options(joinedload(Appointment.visitor))
+            .options(joinedload(Appointment.visitor), joinedload(Appointment.host))
             .where(
                 Appointment.host_id == apt.host_id,
-                Appointment.status.in_(["Checked In", "Expected"])
+                Appointment.status.in_(["CHECKED_IN", "EXPECTED"])
             )
             .order_by(Appointment.scheduled_time.asc())
             .limit(1)
@@ -117,15 +148,23 @@ async def update_appointment(
         next_apt = next_apt_res.scalar_one_or_none()
         
         if next_apt and next_apt.visitor and next_apt.visitor.phone:
-            message = "Smart Front Desk: The person you are here to see is now ready for you. Please proceed."
+            host_name = next_apt.host.full_name if next_apt.host else "Your host"
+            message = f"Smart Front Desk: {host_name} is now ready for you. Please proceed."
             background_tasks.add_task(send_sms, next_apt.visitor.phone, message)
 
-    return apt
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message="Updated appointment",
+        requestId=request.state.request_id,
+        data=AppointmentOut.model_validate(apt)
+    )
 
 
 @router.delete("/{appointment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)) -> None:
-    res = await db.execute(select(Appointment).where(Appointment.id == appointment_id))
+async def delete_appointment(appointment_id: str, db: AsyncSession = Depends(get_db)) -> None:
+    res = await db.execute(select(Appointment).where(Appointment.id == uuid.UUID(appointment_id)))
     apt = res.scalar_one_or_none()
     if not apt:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")

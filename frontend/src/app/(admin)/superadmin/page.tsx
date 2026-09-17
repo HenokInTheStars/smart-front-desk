@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, ShieldCheck, Activity, Settings, 
   Search, Bell, UserPlus, KeyRound, Shield, AlertTriangle, CheckCircle, X, Lock,
   Check, ToggleLeft, ToggleRight, Trash2, Edit3, Sparkles, RefreshCw, Layers, Sliders, ChevronRight, LogOut,
-  ArrowUpDown, ArrowUp, ArrowDown, Clock
+  ArrowUpDown, ArrowUp, ArrowDown, Clock, Menu
 } from 'lucide-react';
 
 interface User {
@@ -39,13 +39,10 @@ export default function SuperAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // System audit log entries
-  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; text: string; detail: string; time: string; tag: string }>>([
-    { id: '1', text: 'Dynamic Role Management System initialized', detail: 'Granular permissions engine active', time: 'Just now', tag: 'System' },
-    { id: '2', text: 'Super Admin authenticated via JWT session', detail: 'IP: 127.0.0.1 • Root Tier Verified', time: '5 mins ago', tag: 'Auth' },
-    { id: '3', text: 'Default role security presets loaded', detail: 'Super Admin, Admin, Reception, Host, Security, Auditor', time: '10 mins ago', tag: 'Security' },
-  ]);
+  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; text: string; detail: string; time: string; tag: string }>>([]);
 
   // Modal: Create User
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -102,7 +99,8 @@ export default function SuperAdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
+        const rawData = await response.json();
+        const data = rawData.data !== undefined ? rawData.data : rawData;
         setUsers(data);
         setAuthError(null);
       } else if (response.status === 401 || response.status === 403) {
@@ -126,7 +124,8 @@ export default function SuperAdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
+        const rawData = await response.json();
+        const data = rawData.data !== undefined ? rawData.data : rawData;
         if (data.permissions) setPermissionCatalog(data.permissions);
         if (data.roles) setRoleDefinitions(data.roles);
       }
@@ -135,9 +134,33 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/users/audit-logs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const rawData = await response.json();
+        const data = rawData.data !== undefined ? rawData.data : rawData;
+        setAuditLogs(data.map((log: any) => ({
+          id: log.id,
+          text: log.action,
+          detail: log.detail || '',
+          time: new Date(log.created_at).toLocaleString(),
+          tag: log.tag || 'System'
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch audit logs:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchRolesCatalog();
+    fetchAuditLogs();
   }, []);
 
   // Open Edit Role & Permissions Modal
@@ -192,7 +215,8 @@ export default function SuperAdminDashboard() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        const rawUser = await response.json();
+        const updatedUser = rawUser.data !== undefined ? rawUser.data : rawUser;
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
         showToast(`✓ Updated role & permissions for ${selectedUser.email} to '${editRole}'`);
         addAuditLog(
@@ -228,7 +252,8 @@ export default function SuperAdminDashboard() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
+        const rawUser = await response.json();
+        const updatedUser = rawUser.data !== undefined ? rawUser.data : rawUser;
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
         showToast(`✓ Account ${user.email} is now ${nextState ? 'Active' : 'Suspended'}`);
         addAuditLog(
@@ -465,11 +490,24 @@ export default function SuperAdminDashboard() {
   });
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
       
+      {/* MOBILE HEADER */}
+      <div className="md:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <ShieldCheck size={16} />
+          </div>
+          <h1 className="text-sm font-bold text-slate-900">Super Admin</h1>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 bg-slate-100 rounded-lg">
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-3">
+      <aside className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative z-40 top-[73px] md:top-0 h-[calc(100vh-73px)] md:h-screen`}>
+        <div className="hidden md:flex h-16 items-center px-6 border-b border-slate-200 gap-3">
           <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm shadow-purple-500/20">
             <ShieldCheck size={18} />
           </div>
@@ -659,8 +697,8 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 {/* Quick User List with Role Modification Action */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-[800px]">
                     <h3 className="text-sm font-bold text-slate-900">Provisioned User Accounts & Roles</h3>
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs">
@@ -686,7 +724,7 @@ export default function SuperAdminDashboard() {
                       </button>
                     </div>
                   </div>
-                  <table className="w-full text-left text-sm text-slate-600">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleUserSort('email')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -820,8 +858,8 @@ export default function SuperAdminDashboard() {
                   ))}
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleUserSort('email')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">

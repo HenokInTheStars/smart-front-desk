@@ -1,6 +1,7 @@
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
+from uuid import UUID
 
 
 class VisitorBase(BaseModel):
@@ -34,7 +35,7 @@ class VisitorUpdate(BaseModel):
 
 class VisitorOut(VisitorBase):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID
     created_at: datetime
 
 
@@ -45,15 +46,15 @@ class ScheduleSlotRequest(BaseModel):
     phone: Optional[str] = None
     purpose: Optional[str] = None
     notes: Optional[str] = None
-    host_id: Optional[int] = None
+    host_id: Optional[UUID] = None
     host_name: Optional[str] = None
     scheduled_time: str
 
 
 class ScheduleSlotResponse(BaseModel):
     message: str
-    appointment_id: int
-    visitor_id: int
+    appointment_id: UUID
+    visitor_id: UUID
     visitor_name: str
     host_name: str
     host_department: str

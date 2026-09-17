@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.security import verify_password, create_access_token, get_password_hash, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from app.db.session import get_db
-from app.db.models import User, Employee, Appointment
+from app.db.models import User, Employee, Appointment, AuditLog
 from app.schemas.user import get_effective_permissions
 
 from app.schemas.auth import (
@@ -16,6 +16,7 @@ from app.schemas.auth import (
     TokenResponse,
     ProfileUpdateRequest,
 )
+from app.schemas.responses import StandardResponseEnvelope
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,10 +44,26 @@ async def login(
 
     access_token = create_access_token(data={"sub": user.email})
     
-    return {
-        "access_token": access_token, 
-        "token_type": "bearer"
-    }
+    audit_log = AuditLog(
+        action="User Login",
+        detail=f"{user.email} authenticated successfully via standard login",
+        tag="Authentication",
+        user_id=user.id
+    )
+    db.add(audit_log)
+    await db.commit()
+    
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="OK",
+        message="Login successful",
+        requestId=f"auth-login-{user.id}",
+        data={
+            "access_token": access_token, 
+            "token_type": "bearer"
+        }
+    )
 
 @router.post("/refresh", response_model=RefreshResponse)
 async def refresh(payload: RefreshRequest) -> RefreshResponse:
@@ -58,8 +75,8 @@ async def logout(payload: RefreshRequest) -> None:
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=_NOT_IMPLEMENTED)
 
 
-@router.get("/me", response_model=CurrentUser)
-async def me(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> CurrentUser:
+@router.get("/me")
+async def me(request: Request, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     emp_res = await db.execute(select(Employee).where(Employee.user_id == current_user.id))
     emp = emp_res.scalar_one_or_none()
 
@@ -86,13 +103,13 @@ async def me(current_user: User = Depends(get_current_user), db: AsyncSession = 
             meeting_res = await db.execute(
                 select(Appointment).where(
                     Appointment.host_id == emp.id,
-                    Appointment.status == "In Meeting"
+                    Appointment.status == "IN_MEETING"
                 )
             )
             if meeting_res.scalars().first():
                 availability_status = 3
 
-    return CurrentUser(
+    current_user_out = CurrentUser(
         id=current_user.id,
         email=current_user.email,
         full_name=emp.full_name if emp else fallback_name,
@@ -105,13 +122,22 @@ async def me(current_user: User = Depends(get_current_user), db: AsyncSession = 
         phone=emp.phone if emp else None,
         availability_status=availability_status
     )
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="OK",
+        message="Fetched current user",
+        requestId=getattr(request.state, "request_id", "req-id-none"),
+        data=current_user_out
+    )
 
-@router.put("/me", response_model=CurrentUser)
+@router.put("/me")
 async def update_me(
+    request: Request,
     payload: ProfileUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
-) -> CurrentUser:
+):
     """Updates the current user's profile (email, phone, password)."""
     
     # 1. Update Email
@@ -155,4 +181,4 @@ async def update_me(
     await db.commit()
     
     # Return the updated user info by calling the `me` endpoint logic again
-    return await me(current_user=current_user, db=db)
+    return await me(request=request, current_user=current_user, db=db)

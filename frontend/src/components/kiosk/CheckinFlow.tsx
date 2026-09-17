@@ -46,6 +46,10 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                 setFormError('Please enter both your first and last name.');
                 return;
             }
+            if (formData.phone && !/^\+251\d{9}$/.test(formData.phone)) {
+                setFormError('Phone number must be in the format +251 followed by 9 digits (e.g. +251912345678).');
+                return;
+            }
             setFormError('');
             setFormStep(2);
             return;
@@ -207,11 +211,11 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1.5">First Name *</label>
-                                        <input type="text" required value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all text-base" placeholder="Abebe" />
+                                        <input type="text" required value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all text-base" placeholder="Abebe" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Last Name *</label>
-                                        <input type="text" required value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all text-base" placeholder="Bikila" />
+                                        <input type="text" required value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value.replace(/[^a-zA-Z\s-]/g, '') })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all text-base" placeholder="Bikila" />
                                     </div>
                                 </div>
                                 <div>
@@ -220,7 +224,13 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Phone Number</label>
-                                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] outline-none transition-all text-base" placeholder="+251912345678" />
+                                    <input type="tel" value={formData.phone} onChange={(e) => {
+                                        let val = e.target.value.replace(/[^\d+]/g, '');
+                                        if (val && !val.startsWith('+251')) {
+                                            val = '+251' + val.replace(/\+/g, '').replace(/^251/, '');
+                                        }
+                                        setFormData({ ...formData, phone: val });
+                                    }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] outline-none transition-all text-base" placeholder="+251912345678" />
                                 </div>
                             </div>
                         </form>
@@ -276,7 +286,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
 
                     {/* --- HOST UNAVAILABLE & NEAREST TIME SUGGESTION MODAL VIEW --- */}
                     {hostUnavailableData && !scheduledBookingInfo && (
-                        <HostUnavailableModal 
+                        <HostUnavailableModal
                             hostUnavailableData={hostUnavailableData}
                             setHostUnavailableData={setHostUnavailableData}
                             handleProceedAnyway={handleProceedAnyway}
@@ -301,9 +311,9 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                                     <div>
                                         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Status</p>
                                         <p className="text-base font-bold text-slate-900 mt-0.5">
-                                            {hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4 
-                                                ? "You will be notified." 
-                                                : "The person you have to meet will notify you to enter."}
+                                            {hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4
+                                                ? "You will be notified."
+                                                : `The host will notify you to enter.`}
                                         </p>
                                     </div>
                                     <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded-full border border-emerald-300">
@@ -334,9 +344,9 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
 
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 my-4 max-w-sm w-full text-center shadow-sm">
                                 <p className="text-base font-bold text-slate-900">
-                                    {hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4 
-                                        ? "You will be notified." 
-                                        : "The person you have to meet will notify you to enter."}
+                                    {hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4
+                                        ? "You will be notified."
+                                        : `The host will notify you to enter.`}
                                 </p>
                             </div>
 

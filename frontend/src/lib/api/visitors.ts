@@ -11,7 +11,8 @@ export async function checkinVisitor(data: any) {
         throw new Error('Failed to complete check-in. Please try again.');
     }
 
-    return await response.json();
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
 }
 
 export async function scheduleSlot(data: any) {
@@ -25,5 +26,6 @@ export async function scheduleSlot(data: any) {
         throw new Error('Failed to schedule appointment.');
     }
 
-    return await response.json();
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
 }

@@ -53,7 +53,8 @@ async def test_end_to_end_on_shift_immediate_checkin(client_transport):
             "hostName": eval_data["host_name"]
         })
         assert checkin_res.status_code == 201, checkin_res.text
-        checkin_data = checkin_res.json()
+        envelope = checkin_res.json()
+        checkin_data = envelope["data"]
         assert checkin_data["assigned_host"] == "Kirubel Gizaw"
         visitor_id = checkin_data["visitor_id"]
 
@@ -63,35 +64,35 @@ async def test_end_to_end_on_shift_immediate_checkin(client_transport):
             "password": "secret"
         })
         assert login_res.status_code == 200
-        host_token = login_res.json()["access_token"]
+        host_token = login_res.json()["data"]["access_token"]
 
         apts_res = await ac.get("/appointments", headers={"Authorization": f"Bearer {host_token}"})
         assert apts_res.status_code == 200
-        apts = apts_res.json()
+        apts = apts_res.json()["data"]
         
         # Find the appointment for Almaz Kebede
         my_apt = next((a for a in apts if a.get("visitor", {}).get("id") == visitor_id), None)
         assert my_apt is not None, "Appointment not found in host list"
-        assert my_apt["status"] == "Checked In"
+        assert my_apt["status"] == "CHECKED_IN"
         apt_id = my_apt["id"]
 
         # Step 4: Host admits visitor to meeting
         admit_res = await ac.patch(
             f"/appointments/{apt_id}",
-            json={"status": "In Meeting"},
+            json={"status": "IN_MEETING"},
             headers={"Authorization": f"Bearer {host_token}"}
         )
         assert admit_res.status_code == 200
-        assert admit_res.json()["status"] == "In Meeting"
+        assert admit_res.json()["data"]["status"] == "IN_MEETING"
 
         # Step 5: Host completes meeting
         complete_res = await ac.patch(
             f"/appointments/{apt_id}",
-            json={"status": "Completed"},
+            json={"status": "COMPLETED"},
             headers={"Authorization": f"Bearer {host_token}"}
         )
         assert complete_res.status_code == 200
-        assert complete_res.json()["status"] == "Completed"
+        assert complete_res.json()["data"]["status"] == "COMPLETED"
 
 
 @pytest.mark.asyncio
@@ -131,8 +132,9 @@ async def test_end_to_end_off_shift_nearest_slot_booking(client_transport):
             "scheduled_time": suggested_iso
         })
         assert book_res.status_code == 201, book_res.text
-        book_data = book_res.json()
-        assert book_data["status"] == "Expected"
+        envelope = book_res.json()
+        book_data = envelope["data"]
+        assert book_data["status"] == "EXPECTED"
         assert book_data["host_name"] == "Kirubel Gizaw"
         assert book_data["visitor_name"] == "Tewodros Kassahun"
         apt_id = book_data["appointment_id"]
@@ -143,15 +145,15 @@ async def test_end_to_end_off_shift_nearest_slot_booking(client_transport):
             "password": "secret"
         })
         assert login_res.status_code == 200
-        host_token = login_res.json()["access_token"]
+        host_token = login_res.json()["data"]["access_token"]
 
         apts_res = await ac.get("/appointments", headers={"Authorization": f"Bearer {host_token}"})
         assert apts_res.status_code == 200
-        apts = apts_res.json()
+        apts = apts_res.json()["data"]
 
         booked_apt = next((a for a in apts if a["id"] == apt_id), None)
         assert booked_apt is not None, "Booked reservation not found in host appointments"
-        assert booked_apt["status"] == "Expected"
+        assert booked_apt["status"] == "EXPECTED"
         assert booked_apt["visitor"]["full_name"] == "Tewodros Kassahun"
 
 
@@ -168,11 +170,11 @@ async def test_host_portal_direct_preregistration_booking(client_transport):
             "password": "secret"
         })
         assert login_res.status_code == 200
-        host_token = login_res.json()["access_token"]
+        host_token = login_res.json()["data"]["access_token"]
 
         me_res = await ac.get("/auth/me", headers={"Authorization": f"Bearer {host_token}"})
         assert me_res.status_code == 200
-        host_profile = me_res.json()
+        host_profile = me_res.json()["data"]
 
         # Host creates pre-registration
         reg_res = await ac.post("/visitors/schedule-slot", json={
@@ -187,7 +189,8 @@ async def test_host_portal_direct_preregistration_booking(client_transport):
             "scheduled_time": "2026-09-15T14:00:00"
         })
         assert reg_res.status_code == 201, reg_res.text
-        data = reg_res.json()
-        assert data["status"] == "Expected"
+        envelope = reg_res.json()
+        data = envelope["data"]
+        assert data["status"] == "EXPECTED"
         assert data["host_name"] == "Sosina Getachew"
         assert data["visitor_name"] == "Bethlehem Tilahun"

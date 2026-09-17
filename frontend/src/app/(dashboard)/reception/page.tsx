@@ -5,20 +5,20 @@ import {
   Users, UserPlus, Clock, CheckCircle2, XCircle, Search, 
   RefreshCw, Building, AlertCircle, ArrowUpRight, ShieldCheck, 
   LogIn, LogOut, Phone, Mail, FileText, BadgeCheck, Printer,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Menu, X
 } from 'lucide-react';
 
 interface Appointment {
-  id: number;
+  id: string;
   visitor: {
-    id: number;
+    id: string;
     full_name: string;
     email: string;
     phone?: string;
     company?: string;
   };
   host?: {
-    id: number;
+    id: string;
     full_name: string;
     department: string;
   };
@@ -28,10 +28,11 @@ interface Appointment {
 }
 
 interface Host {
-  id: number;
+  id: string;
   full_name: string;
   department: string;
   phone?: string;
+  availability_status: number;
 }
 
 export default function ReceptionDashboard() {
@@ -41,6 +42,7 @@ export default function ReceptionDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Sorting States
   const [queueSortField, setQueueSortField] = useState<'name' | 'host' | 'time' | 'status'>('time');
@@ -103,7 +105,7 @@ export default function ReceptionDashboard() {
       });
       if (response.ok) {
         const data = await response.json();
-        setAppointments(data);
+        setAppointments(data.data !== undefined ? data.data : data);
       }
     } catch (err) {
       console.error('Failed to fetch appointments:', err);
@@ -117,7 +119,7 @@ export default function ReceptionDashboard() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/employees`);
       if (response.ok) {
         const data = await response.json();
-        setHosts(data);
+        setHosts(data.data !== undefined ? data.data : data);
       }
     } catch (err) {
       console.error('Failed to fetch hosts:', err);
@@ -175,6 +177,25 @@ export default function ReceptionDashboard() {
     }
   };
 
+  const handleAppointmentUpdate = async (appointmentId: string, field: 'status' | 'host_id', value: string) => {
+    try {
+      const payload = field === 'status' ? { status: value } : { host_id: value };
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments/${appointmentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        showToast(`✓ Appointment updated successfully`);
+        fetchAppointments();
+      } else {
+        showToast('✗ Failed to update appointment');
+      }
+    } catch (err) {
+      showToast('✗ Network error while updating');
+    }
+  };
+
   const filteredAppointments = appointments.filter(apt => {
     const q = searchQuery.toLowerCase();
     const visitorName = apt.visitor?.full_name?.toLowerCase() || '';
@@ -184,8 +205,15 @@ export default function ReceptionDashboard() {
     return visitorName.includes(q) || hostName.includes(q) || company.includes(q) || status.includes(q);
   });
 
-  const checkedInVisitors = filteredAppointments.filter(a => a.status.toLowerCase() === 'checked in' || a.status.toLowerCase() === 'active');
-  const expectedVisitors = filteredAppointments.filter(a => a.status.toLowerCase() === 'scheduled' || a.status.toLowerCase() === 'pending');
+  const checkedInVisitors = filteredAppointments.filter(a => 
+    a.status === 'CHECKED_IN' || 
+    a.status === 'IN_MEETING' || 
+    a.status === 'NEEDS_REASSIGNMENT'
+  );
+  const expectedVisitors = filteredAppointments.filter(a => a.status === 'SCHEDULED' || a.status === 'EXPECTED');
+
+  // Count needs reassignment for global alert
+  const needsReassignmentCount = filteredAppointments.filter(a => a.status === 'NEEDS_REASSIGNMENT').length;
 
   const sortedCheckedInVisitors = [...checkedInVisitors].sort((a, b) => {
     let comparison = 0;
@@ -238,11 +266,24 @@ export default function ReceptionDashboard() {
   });
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
       
+      {/* MOBILE HEADER */}
+      <div className="md:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <Building size={16} />
+          </div>
+          <h1 className="text-sm font-bold text-slate-900">Front Desk</h1>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 bg-slate-100 rounded-lg">
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-3">
+      <aside className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative z-40 top-[73px] md:top-0 h-[calc(100vh-73px)] md:h-screen`}>
+        <div className="hidden md:flex h-16 items-center px-6 border-b border-slate-200 gap-3">
           <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm shadow-emerald-500/20">
             <Building size={18} />
           </div>
@@ -349,6 +390,22 @@ export default function ReceptionDashboard() {
           </div>
         </header>
 
+        {/* GLOBAL ALERT FOR REASSIGNMENT */}
+        {needsReassignmentCount > 0 && (
+          <div className="mx-8 mt-4 p-4 bg-red-50 border-2 border-red-300 rounded-xl text-red-900 text-sm font-bold flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 animate-pulse" />
+              <span>⚠️ {needsReassignmentCount} Visitor{needsReassignmentCount > 1 ? 's' : ''} need{needsReassignmentCount === 1 ? 's' : ''} reassignment. A host indicated the visitor is not theirs.</span>
+            </div>
+            <button 
+              onClick={() => setCurrentTab('live')}
+              className="px-4 py-1.5 bg-red-600 text-white rounded-lg text-xs hover:bg-red-700 transition-colors shadow-xs"
+            >
+              View Queue
+            </button>
+          </div>
+        )}
+
         {/* TOAST MESSAGE */}
         {toastMessage && (
           <div className="mx-8 mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-sm font-medium flex items-center justify-between shadow-xs">
@@ -403,8 +460,8 @@ export default function ReceptionDashboard() {
                 </div>
 
                 {/* Queue Table */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleQueueSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -437,22 +494,42 @@ export default function ReceptionDashboard() {
                     <tbody className="divide-y divide-slate-200">
                       {sortedCheckedInVisitors.length > 0 ? (
                         sortedCheckedInVisitors.map((apt) => (
-                          <tr key={apt.id} className="hover:bg-slate-50/80">
+                          <tr key={apt.id} className={`hover:bg-slate-50/80 ${apt.status === 'NEEDS_REASSIGNMENT' ? 'bg-red-50/50 border-l-4 border-l-red-500' : ''}`}>
                             <td className="px-6 py-4">
                               <div className="font-semibold text-slate-900">{apt.visitor?.full_name || 'Guest Visitor'}</div>
                               <div className="text-xs text-slate-500">{apt.visitor?.company || 'Visitor'} • {apt.visitor?.email}</div>
                             </td>
                             <td className="px-6 py-4">
-                              <div className="font-medium text-slate-800">{apt.host?.full_name || 'Unassigned'}</div>
-                              <div className="text-xs text-slate-500">{apt.host?.department || 'Staff'}</div>
+                              <select
+                                value={apt.host?.id || ''}
+                                onChange={(e) => handleAppointmentUpdate(apt.id, 'host_id', e.target.value)}
+                                className="text-sm font-medium text-slate-800 bg-transparent border-b border-dashed border-slate-300 hover:border-emerald-600 focus:outline-none cursor-pointer py-0.5 w-full max-w-[180px] truncate"
+                              >
+                                <option value="" disabled>Unassigned</option>
+                                {hosts.map(h => (
+                                  <option key={h.id} value={h.id}>{h.full_name} ({h.department})</option>
+                                ))}
+                              </select>
                             </td>
                             <td className="px-6 py-4 text-xs font-mono text-slate-600">
                               {new Date(apt.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </td>
                             <td className="px-6 py-4">
-                              <span className="text-xs px-2.5 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                {apt.status}
-                              </span>
+                              <select
+                                value={apt.status}
+                                onChange={(e) => handleAppointmentUpdate(apt.id, 'status', e.target.value)}
+                                className={`text-xs px-2.5 py-1 rounded-full font-semibold outline-none cursor-pointer focus:ring-1 ${
+                                  apt.status === 'NEEDS_REASSIGNMENT'
+                                    ? 'bg-red-100 text-red-800 border border-red-300 focus:ring-red-500 hover:bg-red-200'
+                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200 focus:ring-emerald-500 hover:bg-emerald-100'
+                                }`}
+                              >
+                                <option value="CHECKED_IN">Checked In</option>
+                                <option value="IN_MEETING">In Meeting</option>
+                                <option value="NEEDS_REASSIGNMENT">Needs Reassignment</option>
+                                <option value="COMPLETED">Completed</option>
+                                <option value="CANCELLED">Cancelled</option>
+                              </select>
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button 
@@ -622,8 +699,8 @@ export default function ReceptionDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleExpectedSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -659,16 +736,32 @@ export default function ReceptionDashboard() {
                             <td className="px-6 py-3.5 font-medium text-slate-900">
                               {apt.visitor?.full_name || 'Guest'}
                             </td>
-                            <td className="px-6 py-3.5 text-slate-700">
-                              {apt.host?.full_name || 'General Reception'}
+                            <td className="px-6 py-3.5">
+                              <select
+                                value={apt.host?.id || ''}
+                                onChange={(e) => handleAppointmentUpdate(apt.id, 'host_id', e.target.value)}
+                                className="text-sm font-medium text-slate-800 bg-transparent border-b border-dashed border-slate-300 hover:border-emerald-600 focus:outline-none cursor-pointer py-0.5 w-full max-w-[180px] truncate"
+                              >
+                                <option value="" disabled>Unassigned</option>
+                                {hosts.map(h => (
+                                  <option key={h.id} value={h.id}>{h.full_name} ({h.department})</option>
+                                ))}
+                              </select>
                             </td>
                             <td className="px-6 py-3.5 text-xs font-mono text-slate-500">
                               {new Date(apt.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </td>
                             <td className="px-6 py-3.5">
-                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium">
-                                {apt.status}
-                              </span>
+                              <select
+                                value={apt.status}
+                                onChange={(e) => handleAppointmentUpdate(apt.id, 'status', e.target.value)}
+                                className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-medium outline-none cursor-pointer hover:bg-blue-100 focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="SCHEDULED">Scheduled</option>
+                                <option value="EXPECTED">Expected</option>
+                                <option value="CHECKED_IN">Checked In</option>
+                                <option value="CANCELLED">Cancelled</option>
+                              </select>
                             </td>
                           </tr>
                         ))
@@ -718,14 +811,25 @@ export default function ReceptionDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sortedHosts.map(h => (
-                    <div key={h.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex items-center gap-3.5">
+                    <div key={h.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-xs flex items-center gap-3.5 relative overflow-hidden">
                       <div className="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center font-bold text-emerald-700 text-sm shrink-0">
                         {h.full_name.split(' ').map(n => n[0]).join('')}
                       </div>
-                      <div className="overflow-hidden">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{h.full_name}</p>
+                      <div className="overflow-hidden w-full">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{h.full_name}</p>
+                          {h.availability_status === 3 ? (
+                            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 rounded px-1.5 py-0.5 flex items-center gap-1 shrink-0"><span className="w-1 h-1 bg-amber-600 rounded-full animate-pulse"></span>Busy</span>
+                          ) : h.availability_status === 4 ? (
+                            <span className="text-[9px] font-bold bg-red-100 text-red-800 border border-red-300 rounded px-1.5 py-0.5 shrink-0">Away</span>
+                          ) : h.availability_status === 2 ? (
+                            <span className="text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-300 rounded px-1.5 py-0.5 shrink-0">DND</span>
+                          ) : (
+                            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 shrink-0">Available</span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500 truncate">{h.department}</p>
-                        {h.phone && <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1"><Phone size={10} /> {h.phone}</p>}
+                        {h.phone && <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1"><Phone size={10} /> {h.phone}</p>}
                       </div>
                     </div>
                   ))}

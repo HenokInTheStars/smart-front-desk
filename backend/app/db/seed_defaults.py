@@ -11,32 +11,32 @@ from app.data.employee_directory import EMPLOYEE_DIRECTORY
 DEFAULT_CORE_USERS = [
     {
         "email": "superadmin@example.com",
-        "role": "Super Admin",
+        "role": "SUPER_ADMIN",
         "password": "secret",
     },
     {
         "email": "admin@example.com",
-        "role": "Admin",
+        "role": "ADMIN",
         "password": "secret",
     },
     {
         "email": "reception@example.com",
-        "role": "Reception",
+        "role": "RECEPTION",
         "password": "secret",
     },
     {
         "email": "host@example.com",
-        "role": "Host",
+        "role": "HOST",
         "password": "secret",
     },
     {
         "email": "security@example.com",
-        "role": "Security",
+        "role": "OTHER",
         "password": "secret",
     },
     {
         "email": "auditor@example.com",
-        "role": "Auditor",
+        "role": "OTHER",
         "password": "secret",
     },
 ]
@@ -53,13 +53,6 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
         should_close = True
 
     try:
-        # Ensure column exists
-        try:
-            await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT DEFAULT ''"))
-            await db.commit()
-        except Exception as e:
-            await db.rollback()
-
         # 1. Seed Core Role Users
         for u_data in DEFAULT_CORE_USERS:
             res = await db.execute(select(User).where(User.email == u_data["email"]))
@@ -92,13 +85,13 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
                 emp_user = User(
                     email=email,
                     hashed_password=get_password_hash("secret"),
-                    role="Host",
+                    role="HOST",
                     is_active=True,
                 )
                 db.add(emp_user)
                 await db.flush()
             else:
-                emp_user.role = "Host"
+                emp_user.role = "HOST"
                 emp_user.hashed_password = get_password_hash("secret")
                 emp_user.is_active = True
                 await db.flush()

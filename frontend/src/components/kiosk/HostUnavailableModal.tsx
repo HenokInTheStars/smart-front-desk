@@ -14,7 +14,7 @@ interface HostEvaluationResult {
     host_department: string;
     host_job_title: string;
     employee_id: string;
-    numeric_host_id: number;
+    numeric_host_id: string;
     reason: string | null;
     nearest_slot: NearestSlot | null;
     current_shift_status: string | null;

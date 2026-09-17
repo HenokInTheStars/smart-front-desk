@@ -7,7 +7,7 @@ import {
   Search, Bell, Download, FileSpreadsheet, CheckCircle, Clock,
   ExternalLink, ArrowUpRight, Shield, ShieldCheck, Flame, UserCheck,
   Building, Sparkles, RefreshCw, LogOut, CheckCircle2, AlertTriangle, Lock,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, Menu, X
 } from 'lucide-react';
 import { generateBeautifulPDF, generateCSV } from '@/lib/reportExporter';
 
@@ -48,6 +48,7 @@ export default function AdminOperationsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const [aptSortField, setAptSortField] = useState<'name' | 'date' | 'host' | 'status'>('date');
@@ -112,7 +113,8 @@ export default function AdminOperationsDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (aptRes.ok) {
-        const aptData = await aptRes.json();
+        const rawAptData = await aptRes.json();
+        const aptData = rawAptData.data !== undefined ? rawAptData.data : rawAptData;
         setAppointments(aptData);
         setAuthError(null);
       } else if (aptRes.status === 401 || aptRes.status === 403) {
@@ -124,7 +126,8 @@ export default function AdminOperationsDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (usersRes.ok) {
-        const usersData = await usersRes.json();
+        const rawUsersData = await usersRes.json();
+        const usersData = rawUsersData.data !== undefined ? rawUsersData.data : rawUsersData;
         setUsers(usersData);
       }
     } catch (err) {
@@ -249,11 +252,24 @@ export default function AdminOperationsDashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
       
+      {/* MOBILE HEADER */}
+      <div className="md:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <Building2 size={16} />
+          </div>
+          <h1 className="text-sm font-bold text-slate-900">Admin Central</h1>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 bg-slate-100 rounded-lg">
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-68 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-3">
+      <aside className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-68 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative z-40 top-[73px] md:top-0 h-[calc(100vh-73px)] md:h-screen`}>
+        <div className="hidden md:flex h-16 items-center px-6 border-b border-slate-200 gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm shadow-blue-500/20">
             <Building2 size={18} />
           </div>
@@ -511,8 +527,8 @@ export default function AdminOperationsDashboard() {
                 </div>
 
                 {/* Recent Visitor Activity Table */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-[800px]">
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">Live Visitor Movement</h3>
                       <p className="text-xs text-slate-500">Real-time status across all hosts and check-ins.</p>
@@ -542,7 +558,7 @@ export default function AdminOperationsDashboard() {
                     </div>
                   </div>
 
-                  <table className="w-full text-left text-sm text-slate-600">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleAptSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -646,8 +662,8 @@ export default function AdminOperationsDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleAptSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -752,8 +768,8 @@ export default function AdminOperationsDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleEvacSort('name')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">
@@ -844,8 +860,8 @@ export default function AdminOperationsDashboard() {
                   </div>
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                  <table className="w-full text-left text-sm text-slate-600">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-600 min-w-[800px]">
                     <thead className="bg-slate-50 text-xs text-slate-500 uppercase border-b border-slate-200">
                       <tr>
                         <th onClick={() => handleStaffSort('email')} className="px-6 py-3 font-semibold cursor-pointer select-none hover:text-slate-900 transition-colors">

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+import uuid
 
 # 1. The data shape expected when a user logs in
 class LoginRequest(BaseModel):
@@ -23,12 +24,12 @@ class RefreshResponse(BaseModel):
 
 # 5. The data shape representing the currently logged-in user
 class CurrentUser(BaseModel):
-    id: int
+    id: uuid.UUID
     email: EmailStr
     full_name: Optional[str] = None
     employee_id: Optional[str] = None
     department: Optional[str] = None
-    numeric_host_id: Optional[int] = None
+    numeric_host_id: Optional[uuid.UUID] = None
     is_active: bool = True
     role: str = "Host"
     permissions: list[str] = []

@@ -23,27 +23,31 @@ export default function LoginSample() {
       
       try {
         const meData = await getMe(data.access_token);
+        
+        // Log the role to the console for debugging
+        console.log("Logged in user role:", meData.role);
+        
+        const role = String(meData.role || '').toUpperCase().replace(' ', '_');
+        
         setMessage(`✓ Login Successful! Redirecting...`);
         setTimeout(() => {
-          if (meData.role === 'Super Admin') {
+          if (role === 'SUPER_ADMIN') {
             router.push('/superadmin');
-          } else if (meData.role === 'Admin') {
+          } else if (role === 'ADMIN') {
             router.push('/admin');
-          } else if (meData.role === 'Reception') {
+          } else if (role === 'RECEPTION') {
             router.push('/reception');
           } else {
             router.push('/dashboard');
           }
         }, 700);
         return;
-      } catch {
-        // Fallback
+      } catch (err: any) {
+        console.error("getMe failed:", err);
+        setMessage(`✗ Failed to get user profile: ${err.message}`);
+        setIsLoading(false);
+        return;
       }
-
-      setMessage(`✓ Login Successful! Redirecting...`);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 900);
     } catch (error: any) {
       if (error.message.includes('Invalid credentials')) {
         setMessage('✗ Login failed. Invalid credentials.');

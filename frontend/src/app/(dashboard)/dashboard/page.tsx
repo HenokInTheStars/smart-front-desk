@@ -7,7 +7,7 @@ import {
   X, ChevronRight, UserCheck, Bell, Shield, Settings, AlertCircle, Save,
   ChevronLeft, CalendarDays, CheckCircle2, UserX, LogOut, Building, Mail, Lock,
   Phone, Sparkles, ArrowRight, BookmarkCheck, CalendarClock,
-  ArrowUpDown, ArrowUp, ArrowDown
+  ArrowUpDown, ArrowUp, ArrowDown, XCircle, Menu
 } from 'lucide-react';
 import ProfileTab from './ProfileTab';
 
@@ -103,6 +103,7 @@ export default function HostPortal() {
   const [isSavingSchedule, setIsSavingSchedule] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -123,7 +124,8 @@ export default function HostPortal() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (meRes.ok) {
-        const meData = await meRes.json();
+        const dataRaw = await meRes.json();
+        const meData = dataRaw.data !== undefined ? dataRaw.data : dataRaw;
         const hostId = meData.employee_id || 'EMP001';
         setCurrentHostId(hostId);
         if (meData.full_name) setCurrentHostName(meData.full_name);
@@ -139,7 +141,8 @@ export default function HostPortal() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (schedRes.ok) {
-          const schedData = await schedRes.json();
+          const schedRaw = await schedRes.json();
+          const schedData = schedRaw.data !== undefined ? schedRaw.data : schedRaw;
           if (schedData.shifts && schedData.shifts.length > 0) {
             setSchedule(prev => prev.map(day => {
               const shift = schedData.shifts.find((s: any) => s.day_of_week === day.dayIndex);
@@ -186,7 +189,8 @@ export default function HostPortal() {
         }
       });
       if (response.ok) {
-        const data = await response.json();
+        const rawAptData = await response.json();
+        const data = rawAptData.data !== undefined ? rawAptData.data : rawAptData;
         
         // Filter specifically for this host's assigned appointments
         const myAppointments = data.filter((apt: any) => {
@@ -265,10 +269,11 @@ export default function HostPortal() {
     showToast(`Visitor status updated to ${newStatus.replace('_', ' ')}.`);
 
     // Persist to backend database
-    let apiStatus = 'Checked In';
-    if (newStatus === 'in_meeting') apiStatus = 'In Meeting';
-    else if (newStatus === 'completed') apiStatus = 'Completed';
-    else if (newStatus === 'expected' || newStatus === 'scheduled') apiStatus = 'Expected';
+    let apiStatus = 'CHECKED_IN';
+    if (newStatus === 'in_meeting') apiStatus = 'IN_MEETING';
+    else if (newStatus === 'completed') apiStatus = 'COMPLETED';
+    else if (newStatus === 'expected' || newStatus === 'scheduled') apiStatus = 'EXPECTED';
+    else if (newStatus === 'needs_reassignment') apiStatus = 'NEEDS_REASSIGNMENT';
 
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments/${id}`, {
@@ -531,11 +536,24 @@ export default function HostPortal() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
       
+      {/* MOBILE HEADER */}
+      <div className="md:hidden flex items-center justify-between bg-white border-b border-slate-200 p-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <UserCheck size={16} />
+          </div>
+          <h1 className="text-sm font-bold text-slate-900">Host Station</h1>
+        </div>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-600 bg-slate-100 rounded-lg">
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+
       {/* SIDEBAR */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 gap-3">
+      <aside className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex w-full md:w-72 bg-white border-r border-slate-200 flex-col shrink-0 absolute md:relative z-40 top-[73px] md:top-0 h-[calc(100vh-73px)] md:h-screen`}>
+        <div className="hidden md:flex h-16 items-center px-6 border-b border-slate-200 gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm shadow-blue-500/20">
             <UserCheck size={18} />
           </div>
@@ -862,12 +880,20 @@ export default function HostPortal() {
                               {visitor.notes && <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-200 mt-2">{visitor.notes}</p>}
                             </div>
 
-                            <button
-                              onClick={() => handleStatusChange(visitor.id, 'in_meeting')}
-                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
-                            >
-                              <UserCheck size={14} /> Admit & Start Meeting
-                            </button>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <button
+                                onClick={() => handleStatusChange(visitor.id, 'needs_reassignment')}
+                                className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors border border-red-200 flex flex-1 sm:flex-none items-center justify-center gap-1.5 shadow-xs"
+                              >
+                                <XCircle size={14} /> Not Mine
+                              </button>
+                              <button
+                                onClick={() => handleStatusChange(visitor.id, 'in_meeting')}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs flex flex-1 sm:flex-none items-center justify-center gap-1.5"
+                              >
+                                <UserCheck size={14} /> Admit & Start Meeting
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

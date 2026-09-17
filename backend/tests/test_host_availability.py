@@ -129,8 +129,9 @@ async def test_schedule_suggested_slot_appointment(client_transport):
             "scheduled_time": "2026-09-10T09:00:00"
         })
         assert res.status_code == 201, res.text
-        data = res.json()
-        assert data["status"] == "Expected"
+        envelope = res.json()
+        data = envelope["data"]
+        assert data["status"] == "EXPECTED"
         assert data["host_name"] == "Kirubel Gizaw"
         assert data["visitor_name"] == "Dawit Tadesse"
         assert data["appointment_id"] is not None

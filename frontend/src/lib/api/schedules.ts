@@ -11,5 +11,6 @@ export async function evaluateHostAvailability(data: any) {
         throw new Error('Failed to evaluate host availability');
     }
 
-    return await response.json();
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
 }

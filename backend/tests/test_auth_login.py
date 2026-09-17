@@ -31,7 +31,7 @@ async def test_superadmin_login_success(client_transport):
             "password": "secret"
         })
         assert res.status_code == 200, res.text
-        data = res.json()
+        data = res.json()["data"]
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
@@ -39,9 +39,9 @@ async def test_superadmin_login_success(client_transport):
         token = data["access_token"]
         me_res = await ac.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert me_res.status_code == 200
-        me_data = me_res.json()
+        me_data = me_res.json()["data"]
         assert me_data["email"] == "superadmin@example.com"
-        assert me_data["role"] == "Super Admin"
+        assert me_data["role"] == "SUPER_ADMIN"
         assert "manage_users" in me_data["permissions"]
         assert "system_logs" in me_data["permissions"]
 
@@ -55,11 +55,11 @@ async def test_admin_and_reception_login_success(client_transport):
             "password": "secret"
         })
         assert admin_res.status_code == 200, admin_res.text
-        admin_token = admin_res.json()["access_token"]
+        admin_token = admin_res.json()["data"]["access_token"]
 
         admin_me = await ac.get("/auth/me", headers={"Authorization": f"Bearer {admin_token}"})
         assert admin_me.status_code == 200
-        assert admin_me.json()["role"] == "Admin"
+        assert admin_me.json()["data"]["role"] == "ADMIN"
 
         # Reception
         rec_res = await ac.post("/auth/login", json={
@@ -67,12 +67,12 @@ async def test_admin_and_reception_login_success(client_transport):
             "password": "secret"
         })
         assert rec_res.status_code == 200, rec_res.text
-        rec_token = rec_res.json()["access_token"]
+        rec_token = rec_res.json()["data"]["access_token"]
 
         rec_me = await ac.get("/auth/me", headers={"Authorization": f"Bearer {rec_token}"})
         assert rec_me.status_code == 200
-        rec_data = rec_me.json()
-        assert rec_data["role"] == "Reception"
+        rec_data = rec_me.json()["data"]
+        assert rec_data["role"] == "RECEPTION"
         assert "view_queue" in rec_data["permissions"]
         assert "print_badge" in rec_data["permissions"]
 
@@ -90,13 +90,13 @@ async def test_all_10_host_employees_login(client_transport):
                 "password": "secret"
             })
             assert res.status_code == 200, f"Failed login for {email}: {res.text}"
-            token = res.json()["access_token"]
+            token = res.json()["data"]["access_token"]
 
             me_res = await ac.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
             assert me_res.status_code == 200, f"Failed /auth/me for {email}: {me_res.text}"
-            me_data = me_res.json()
+            me_data = me_res.json()["data"]
             assert me_data["email"] == email
-            assert me_data["role"] == "Host"
+            assert me_data["role"] == "HOST"
             assert me_data["full_name"] == emp["name"]
             assert emp["department"] in me_data["department"]
             assert me_data["numeric_host_id"] is not None
@@ -173,7 +173,7 @@ async def test_rbac_access_control_with_role_tokens(client_transport):
             "email": "reception@example.com",
             "password": "secret"
         })
-        rec_token = rec_res.json()["access_token"]
+        rec_token = rec_res.json()["data"]["access_token"]
 
         # Reception attempting Super Admin only endpoint -> 403 Forbidden
         rbac_res = await ac.get(
@@ -187,7 +187,7 @@ async def test_rbac_access_control_with_role_tokens(client_transport):
             "email": "superadmin@example.com",
             "password": "secret"
         })
-        sa_token = sa_res.json()["access_token"]
+        sa_token = sa_res.json()["data"]["access_token"]
 
         sa_rbac_res = await ac.get(
             "/users/roles/catalog",

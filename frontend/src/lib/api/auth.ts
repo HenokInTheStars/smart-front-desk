@@ -11,8 +11,8 @@ export async function loginUser(email: string, password: string) {
         throw new Error('Login failed. Invalid credentials.');
     }
 
-    const data = await response.json();
-    return data;
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
 }
 
 export async function getMe(accessToken: string) {
@@ -24,6 +24,6 @@ export async function getMe(accessToken: string) {
         throw new Error('Failed to get user profile.');
     }
 
-    const data = await response.json();
-    return data;
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
 }

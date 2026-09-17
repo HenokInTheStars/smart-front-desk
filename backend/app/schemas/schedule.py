@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from uuid import UUID
 from typing import List
 
 class HostShiftBase(BaseModel):
@@ -60,7 +61,7 @@ class HostAvailabilityEvaluationResponse(BaseModel):
     host_department: str
     host_job_title: str
     employee_id: str
-    numeric_host_id: int
+    numeric_host_id: UUID
     reason: str | None = None
     nearest_slot: NearestSlotInfo | None = None
     current_shift_status: str | None = None

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.db.seed_defaults import seed_all_default_users_and_hosts
-from app.routers import appointments, auth, employees, visitors, schedules, users
+from app.routers import appointments, auth, employees, visitors, schedules, users, dashboard, live
 
 settings = get_settings()
 
@@ -22,13 +22,34 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Smart Front Desk API", lifespan=lifespan)
+import uuid
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 
-# Restrict CORS to the Next.js dev server only — the browser will block any
-# other origin from calling this API, even though the API itself is reachable.
+class RequestIdMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+app = FastAPI(title="Smart Front Desk API", lifespan=lifespan)
+app.add_middleware(RequestIdMiddleware)
+
+# Restrict CORS to the Next.js dev server only
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "http://10.2.0.2:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://10.2.0.2:3001",
+        settings.frontend_origin
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,6 +64,8 @@ app.include_router(visitors.router)
 app.include_router(appointments.router)
 app.include_router(schedules.router)
 app.include_router(users.router)
+app.include_router(dashboard.router)
+app.include_router(live.router)
 
 
 @app.get("/healthz")

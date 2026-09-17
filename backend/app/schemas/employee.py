@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
@@ -8,6 +9,7 @@ class EmployeeBase(BaseModel):
     full_name: str
     department: str
     phone: str | None = None
+    availability_status: int = 1
 
 class EmployeeCreate(EmployeeBase):
     pass
@@ -20,4 +22,4 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeeOut(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID

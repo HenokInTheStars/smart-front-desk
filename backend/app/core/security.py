@@ -8,9 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models import User
+from app.core.config import get_settings
+
+settings = get_settings()
 
 # Secret keys and settings for your tokens
-SECRET_KEY = "your-super-secret-development-key-change-this"
+SECRET_KEY = settings.jwt_secret
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

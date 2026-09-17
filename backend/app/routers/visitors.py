@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from datetime import datetime, timezone
@@ -13,6 +13,7 @@ from app.schemas.visitor import (
     ScheduleSlotRequest,
     ScheduleSlotResponse,
 )
+from app.schemas.responses import StandardResponseEnvelope
 from app.services.ai_routing import match_host_for_visitor
 from app.data.employee_directory import EMPLOYEE_DIRECTORY
 from app.services.sms_service import send_sms
@@ -29,7 +30,7 @@ async def list_visitors(skip: int = 0, limit: int = 50) -> list[VisitorOut]:
 
 
 @router.post("/checkin", status_code=status.HTTP_201_CREATED)
-async def kiosk_checkin(payload: CheckInRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+async def kiosk_checkin(request: Request, payload: CheckInRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     try:
         first_name = (payload.firstName or "").strip()
         last_name = (payload.lastName or "").strip()
@@ -100,8 +101,8 @@ async def kiosk_checkin(payload: CheckInRequest, background_tasks: BackgroundTas
             appointment = Appointment(
                 visitor_id=visitor.id,
                 host_id=host.id,
-                scheduled_time=datetime.now().replace(microsecond=0),
-                status="Checked In",
+                scheduled_time=datetime.now(timezone.utc).replace(microsecond=0),
+                status="CHECKED_IN",
                 notes=f"Purpose: {payload.purpose}\nNotes: {payload.notes or ''}"
             )
             db.add(appointment)
@@ -115,30 +116,42 @@ async def kiosk_checkin(payload: CheckInRequest, background_tasks: BackgroundTas
                 meeting_res = await db.execute(
                     select(Appointment).where(
                         Appointment.host_id == host.id,
-                        Appointment.status == "In Meeting"
+                        Appointment.status == "IN_MEETING"
                     )
                 )
                 if meeting_res.scalars().first():
                     host_availability_status = 3
 
-            if host.phone:
+            if host.phone and host_availability_status in (1, 3):
                 message = f"Smart Front Desk: {visitor.full_name} is here to see you for {payload.purpose}."
                 background_tasks.add_task(send_sms, host.phone, message)
 
         if payload.phone:
             if host_availability_status in (1, 3):
-                visitor_msg = "Smart Front Desk: The person you have to meet will notify you to enter."
+                visitor_msg = "Smart Front Desk: The host will notify you to enter."
             else:
                 visitor_msg = "Smart Front Desk: You will be notified."
             background_tasks.add_task(send_sms, payload.phone, visitor_msg)
 
-        return {
-            "message": "Check-in successful",
-            "visitor_id": visitor.id,
+        res_data = {
+            "visitor_id": str(visitor.id),
             "assigned_host": host.full_name if host else "General Reception",
             "assigned_department": host.department if host else "Front Desk",
             "host_availability_status": host_availability_status
         }
+        
+        # Broadcast the check-in event to all SSE clients (e.g. Reception Dashboard)
+        from app.routers.live import broadcast_event
+        background_tasks.add_task(broadcast_event, "checkin", res_data)
+
+        return StandardResponseEnvelope(
+            internalCode="SUCCESS-201",
+            statusCode=201,
+            status="SUCCESS",
+            message="Check-in successful",
+            requestId=request.state.request_id,
+            data=res_data
+        )
     except Exception as e:
         await db.rollback()
         raise HTTPException(
@@ -147,8 +160,8 @@ async def kiosk_checkin(payload: CheckInRequest, background_tasks: BackgroundTas
         )
 
 
-@router.post("/schedule-slot", response_model=ScheduleSlotResponse, status_code=status.HTTP_201_CREATED)
-async def schedule_suggested_slot(payload: ScheduleSlotRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+@router.post("/schedule-slot", status_code=status.HTTP_201_CREATED)
+async def schedule_suggested_slot(request: Request, payload: ScheduleSlotRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     """
     Schedules an appointment for the visitor at the suggested future shift slot
     with status 'Expected' so the host and reception have it pre-booked on their calendar.
@@ -215,12 +228,11 @@ async def schedule_suggested_slot(payload: ScheduleSlotRequest, background_tasks
             scheduled_dt = scheduled_dt.replace(tzinfo=None)
         scheduled_dt = scheduled_dt.replace(microsecond=0)
 
-        # Create scheduled appointment
         appointment = Appointment(
             visitor_id=visitor.id,
             host_id=host.id,
             scheduled_time=scheduled_dt,
-            status="Expected",
+            status="EXPECTED",
             notes=f"Kiosk Scheduled Slot\nPurpose: {payload.purpose or 'Meeting'}\nNotes: {payload.notes or ''}"
         )
         db.add(appointment)
@@ -232,15 +244,21 @@ async def schedule_suggested_slot(payload: ScheduleSlotRequest, background_tasks
             visitor_msg = f"Smart Front Desk: Your appointment with {host.full_name} is confirmed for {payload.scheduled_time}."
             background_tasks.add_task(send_sms, visitor.phone, visitor_msg)
 
-        return ScheduleSlotResponse(
+        return StandardResponseEnvelope(
+            internalCode="SUCCESS-201",
+            statusCode=201,
+            status="SUCCESS",
             message="Appointment successfully scheduled for suggested slot.",
-            appointment_id=appointment.id,
-            visitor_id=visitor.id,
-            visitor_name=visitor.full_name,
-            host_name=host.full_name,
-            host_department=host.department,
-            scheduled_time=payload.scheduled_time,
-            status="Expected"
+            requestId=request.state.request_id,
+            data={
+                "appointment_id": str(appointment.id),
+                "visitor_id": str(visitor.id),
+                "visitor_name": visitor.full_name,
+                "host_name": host.full_name,
+                "host_department": host.department,
+                "scheduled_time": payload.scheduled_time,
+                "status": "EXPECTED"
+            }
         )
     except Exception as e:
         await db.rollback()
@@ -250,11 +268,42 @@ async def schedule_suggested_slot(payload: ScheduleSlotRequest, background_tasks
         )
 
 
-@router.post("", response_model=VisitorOut, status_code=status.HTTP_201_CREATED)
-async def create_visitor(payload: VisitorCreate) -> VisitorOut:
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_visitor(payload: VisitorCreate):
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=_NOT_IMPLEMENTED)
 
 
-@router.get("/{visitor_id}", response_model=VisitorOut)
-async def get_visitor(visitor_id: str) -> VisitorOut:
+@router.get("/{visitor_id}")
+async def get_visitor(visitor_id: str):
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail=_NOT_IMPLEMENTED)
+
+@router.post("/{visitor_id}/checkout")
+async def checkout_visitor(request: Request, visitor_id: str, db: AsyncSession = Depends(get_db)):
+    try:
+        vid = uuid.UUID(visitor_id)
+        
+        # update latest appointment status to 'COMPLETED'
+        apt_res = await db.execute(
+            select(Appointment)
+            .where(Appointment.visitor_id == vid)
+            .order_by(Appointment.created_at.desc())
+            .limit(1)
+        )
+        apt = apt_res.scalar_one_or_none()
+        if not apt:
+            raise HTTPException(status_code=404, detail="No appointment found for visitor")
+        
+        apt.status = "COMPLETED"
+        await db.commit()
+        
+        return StandardResponseEnvelope(
+            internalCode="SUCCESS-200",
+            statusCode=200,
+            status="SUCCESS",
+            message="Visitor checked out successfully",
+            requestId=request.state.request_id,
+            data={"appointment_id": str(apt.id)}
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
