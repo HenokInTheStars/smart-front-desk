@@ -25,3 +25,6 @@ class AppointmentOut(AppointmentBase):
     id: UUID
     visitor: VisitorOut | None = None
     host: EmployeeOut | None = None
+    checked_in_at: datetime | None = None
+    admitted_at: datetime | None = None
+    checked_out_at: datetime | None = None

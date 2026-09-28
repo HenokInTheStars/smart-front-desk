@@ -17,6 +17,7 @@ from app.schemas.responses import StandardResponseEnvelope
 from app.services.ai_routing import match_host_for_visitor
 from app.data.employee_directory import EMPLOYEE_DIRECTORY
 from app.services.sms_service import send_sms
+from app.services.email_service import send_email
 from fastapi import BackgroundTasks
 
 router = APIRouter(prefix="/visitors", tags=["visitors"])
@@ -66,7 +67,7 @@ async def kiosk_checkin(request: Request, payload: CheckInRequest, background_ta
         matched_meta = None
 
         if not target_host_name:
-            matched_meta = match_host_for_visitor(payload.purpose, payload.notes)
+            matched_meta = await match_host_for_visitor(payload.purpose, payload.notes, db)
             target_host_name = matched_meta["name"]
 
         # 3. Lookup Host in DB
@@ -204,7 +205,7 @@ async def schedule_suggested_slot(request: Request, payload: ScheduleSlotRequest
             host = h_res.scalar_one_or_none()
 
         if not host:
-            matched_meta = match_host_for_visitor(payload.purpose, payload.notes)
+            matched_meta = await match_host_for_visitor(payload.purpose, payload.notes, db)
             emp_res = await db.execute(select(Employee).where(Employee.employee_id == matched_meta["employee_id"]))
             host = emp_res.scalar_one_or_none()
             if not host:
@@ -243,6 +244,12 @@ async def schedule_suggested_slot(request: Request, payload: ScheduleSlotRequest
         if visitor.phone:
             visitor_msg = f"Smart Front Desk: Your appointment with {host.full_name} is confirmed for {payload.scheduled_time}."
             background_tasks.add_task(send_sms, visitor.phone, visitor_msg)
+
+        # Trigger Email Notification to Visitor
+        if visitor.email and "@visitor.matrix" not in visitor.email:
+            email_subject = "Your Appointment is Confirmed"
+            email_content = f"Hello {visitor.full_name},\n\nYour appointment with {host.full_name} is confirmed for {payload.scheduled_time}.\n\nPlease proceed to the Front Desk upon arrival.\n\nThank you,\nSmart Front Desk"
+            background_tasks.add_task(send_email, visitor.email, email_subject, email_content)
 
         return StandardResponseEnvelope(
             internalCode="SUCCESS-201",

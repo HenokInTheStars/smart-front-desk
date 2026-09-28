@@ -23,6 +23,8 @@ async def lifespan(app: FastAPI):
 
 
 import uuid
+import os
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -37,6 +39,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(title="Smart Front Desk API", lifespan=lifespan)
 app.add_middleware(RequestIdMiddleware)
+
+# Mount uploads directory
+os.makedirs(os.path.join(os.getcwd(), "uploads"), exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Restrict CORS to the Next.js dev server only
 app.add_middleware(
@@ -66,6 +72,9 @@ app.include_router(schedules.router)
 app.include_router(users.router)
 app.include_router(dashboard.router)
 app.include_router(live.router)
+
+from app.routers import settings as settings_router
+app.include_router(settings_router.router)
 
 
 @app.get("/healthz")

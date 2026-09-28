@@ -12,8 +12,8 @@ class HostShiftCreate(HostShiftBase):
 
 class HostShiftOut(HostShiftBase):
     model_config = ConfigDict(from_attributes=True)
-    id: int
-    employee_id: int
+    id: UUID
+    employee_id: UUID
 
 class HostHolidayBase(BaseModel):
     date: str
@@ -24,8 +24,8 @@ class HostHolidayCreate(HostHolidayBase):
 
 class HostHolidayOut(HostHolidayBase):
     model_config = ConfigDict(from_attributes=True)
-    id: int
-    employee_id: int
+    id: UUID
+    employee_id: UUID
 
 class HostScheduleUpdate(BaseModel):
     shifts: List[HostShiftCreate]
@@ -62,6 +62,7 @@ class HostAvailabilityEvaluationResponse(BaseModel):
     host_job_title: str
     employee_id: str
     numeric_host_id: UUID
+    host_status: int = 1
     reason: str | None = None
     nearest_slot: NearestSlotInfo | None = None
     current_shift_status: str | None = None

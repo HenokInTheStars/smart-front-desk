@@ -14,3 +14,26 @@ export async function evaluateHostAvailability(data: any) {
     const result = await response.json();
     return result.data !== undefined ? result.data : result;
 }
+
+export async function getHostSchedule(employeeId: string, token: string) {
+    const response = await fetch(`${getBaseUrl()}/schedules/${employeeId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to load schedule');
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
+}
+
+export async function updateHostSchedule(employeeId: string, payload: any, token: string) {
+    const response = await fetch(`${getBaseUrl()}/schedules/${employeeId}`, {
+        method: 'PUT',
+        headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('Failed to update schedule');
+    const result = await response.json();
+    return result.data !== undefined ? result.data : result;
+}

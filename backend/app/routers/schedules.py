@@ -43,7 +43,7 @@ async def calculate_host_availability_and_nearest_slot(
     employee: Employee,
     target_dt: datetime,
     db: AsyncSession
-) -> tuple[bool, Optional[str], Optional[NearestSlotInfo], Optional[str]]:
+) -> tuple[bool, Optional[str], Optional[NearestSlotInfo], Optional[str], int]:
     """
     Evaluates if the host is available at `target_dt` and computes the nearest
     available slot within the next 14 days if currently unavailable.
@@ -79,15 +79,21 @@ async def calculate_host_availability_and_nearest_slot(
     is_available = False
     unavailability_reason = None
     current_shift_status = "Off Shift"
+    host_status = employee.availability_status
 
     if employee.availability_status in (2, 4):
         is_available = False
         unavailability_reason = "Host is currently marked as Not Available for guests"
         current_shift_status = "Not Available"
+    elif employee.availability_status == 3:
+        is_available = False
+        unavailability_reason = "Host is currently busy (In Meeting)"
+        current_shift_status = "In Meeting"
     elif target_date_str in holiday_map:
         is_available = False
         unavailability_reason = f"Out of Office: {holiday_map[target_date_str]}"
         current_shift_status = "Holiday / Leave"
+        host_status = 2 # OOO
     else:
         today_shifts = weekly_shifts.get(target_weekday, [])
         if not today_shifts:
@@ -112,7 +118,7 @@ async def calculate_host_availability_and_nearest_slot(
                     current_shift_status = "Shift Ended"
 
     if is_available:
-        return True, None, None, current_shift_status
+        return True, None, None, current_shift_status, host_status
 
     # 3. Compute Nearest Available Slot across the next 14 days
     nearest_slot: Optional[NearestSlotInfo] = None
@@ -164,7 +170,7 @@ async def calculate_host_availability_and_nearest_slot(
             )
             break
 
-    return is_available, unavailability_reason, nearest_slot, current_shift_status
+    return is_available, unavailability_reason, nearest_slot, current_shift_status, host_status
 
 
 @router.get("/{employee_id}", response_model=HostScheduleOut)
@@ -253,8 +259,8 @@ async def evaluate_host_availability(
     matched_meta = None
 
     if not target_host_name:
-        matched_meta = match_host_for_visitor(payload.purpose, payload.notes)
-        target_host_name = matched_meta["name"]
+        matched_meta = await match_host_for_visitor(payload.purpose, payload.notes, db)
+        target_host_name = matched_meta["name"] if matched_meta else None
 
     # 2. Lookup Host in DB
     result = await db.execute(select(Employee).where(Employee.full_name == target_host_name))
@@ -291,7 +297,7 @@ async def evaluate_host_availability(
         target_dt = datetime.now()
 
     # 4. Compute availability and nearest slot
-    is_available, reason, nearest_slot, shift_status = await calculate_host_availability_and_nearest_slot(
+    is_available, reason, nearest_slot, shift_status, host_status = await calculate_host_availability_and_nearest_slot(
         host, target_dt, db
     )
 
@@ -309,6 +315,7 @@ async def evaluate_host_availability(
         host_job_title=job_title,
         employee_id=host.employee_id,
         numeric_host_id=host.id,
+        host_status=host_status,
         reason=reason,
         nearest_slot=nearest_slot,
         current_shift_status=shift_status

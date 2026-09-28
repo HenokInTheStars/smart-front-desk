@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     
     afromessage_api_key: str | None = None
     afromessage_sender_name: str | None = None
+    
+    smtp_server: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str = "noreply@smartfrontdesk.local"
 
     @property
     def resolved_database_url(self) -> str:

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.db.session import get_db
 from app.db.models import User
 from app.core.config import get_settings
+from app.schemas.user import get_effective_permissions
 
 settings = get_settings()
 
@@ -57,14 +58,25 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise credentials_exception
     return user
 
-class RequireRole:
-    def __init__(self, allowed_roles: list[str]):
-        self.allowed_roles = [r.strip().lower() for r in allowed_roles]
+class RequirePermission:
+    def __init__(self, required_permissions: list[str]):
+        self.required_permissions = required_permissions
 
     async def __call__(self, current_user: User = Depends(get_current_user)) -> User:
-        user_role = (current_user.role or "").strip().lower()
-        if user_role == "super admin" or user_role in self.allowed_roles:
+        user_role = (current_user.role or "").strip().upper()
+        
+        # Super Admins bypass all permission checks
+        if user_role == "SUPER_ADMIN":
             return current_user
+            
+        effective_perms = get_effective_permissions(user_role, current_user.permissions)
+        
+        # Check if user has ANY of the required permissions for this endpoint
+        has_permission = any(p in effective_perms for p in self.required_permissions)
+        
+        if has_permission:
+            return current_user
+            
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient privileges to perform this action"

@@ -33,6 +33,7 @@ class CurrentUser(BaseModel):
     is_active: bool = True
     role: str = "Host"
     permissions: list[str] = []
+    preferences: dict = {}
     phone: Optional[str] = None
     availability_status: int = 1
 
@@ -43,3 +44,7 @@ class ProfileUpdateRequest(BaseModel):
     availability_status: Optional[int] = None
     current_password: Optional[str] = None
     new_password: Optional[str] = None
+    preferences: Optional[dict] = None
+
+class StatusUpdateRequest(BaseModel):
+    availability_status: int

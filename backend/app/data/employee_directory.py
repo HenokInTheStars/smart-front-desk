@@ -64,11 +64,11 @@ EMPLOYEE_DIRECTORY = [
         "name": "Semir Sultan",
         "job_title": "Game Developer",
         "department": "Engineering",
-        "job_description": "Develops gameplay systems and mechanics in Unity using C#, including physics, animation, and AI behavior trees. Optimizes rendering performance with the Universal Render Pipeline (URP) and profiles builds using the Unity Profiler. Implements multiplayer networking with Photon and manages version control and asset pipelines through Git LFS and Perforce.",
+        "job_description": "Develops gameplay systems in Unity using C#, including physics and animation. Optimizes rendering performance with the Universal Render Pipeline (URP) and profiles builds using the Unity Profiler. Implements multiplayer networking with Photon and manages version control and asset pipelines through Git LFS and Perforce.",
         "keywords": [
-            "game", "developer", "unity", "c#", "physics", "animation", "ai", "urp", "rendering", "profiler", 
+            "game", "developer", "unity", "c#", "physics", "animation", "urp", "rendering", "profiler", 
             "multiplayer", "photon", "networking", "git", "git lfs", "perforce", "engineering",
-            "gameplay", "mechanics", "assets", "version-control", "3d", "optimization", "game-engine", "scripting", "software", "interactive"
+            "gameplay", "assets", "version-control", "3d", "optimization", "game-engine", "scripting", "software", "interactive"
         ]
     }
 ]

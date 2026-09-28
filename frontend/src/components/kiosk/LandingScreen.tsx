@@ -7,17 +7,36 @@ interface LandingScreenProps {
 export default function LandingScreen({ setScreen }: LandingScreenProps) {
   const [slide, setSlide] = useState(0);
 
-  const backgrounds = [
+  const [backgrounds, setBackgrounds] = useState([
     "url('/matrix 1.png')",
     "url('/matrix 2.png')",
     "url('/matrix 3.png')"
-  ];
+  ]);
 
-  const copies = [
+  const [copies, setCopies] = useState([
     "Welcome to Matrix Technologies",
     "Seamlessly Connect with Our Team",
     "Your Modern Receptionist Experience"
-  ];
+  ]);
+
+  useEffect(() => {
+    // Load custom settings from backend API
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/settings/kiosk_slides`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.data && data.data.length > 0) {
+            setBackgrounds(data.data.map((s: any) => s.image));
+            setCopies(data.data.map((s: any) => s.text));
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch custom kiosk slides from backend", e);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

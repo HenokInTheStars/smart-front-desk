@@ -15,6 +15,7 @@ from app.schemas.auth import (
     RefreshResponse,
     TokenResponse,
     ProfileUpdateRequest,
+    StatusUpdateRequest,
 )
 from app.schemas.responses import StandardResponseEnvelope
 
@@ -119,6 +120,7 @@ async def me(request: Request, current_user: User = Depends(get_current_user), d
         is_active=current_user.is_active,
         role=current_user.role,
         permissions=effective_perms,
+        preferences=current_user.preferences or {},
         phone=emp.phone if emp else None,
         availability_status=availability_status
     )
@@ -130,6 +132,46 @@ async def me(request: Request, current_user: User = Depends(get_current_user), d
         requestId=getattr(request.state, "request_id", "req-id-none"),
         data=current_user_out
     )
+
+@router.patch("/me/preferences")
+async def update_preferences(
+    payload: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Updates the user's preferences JSONB column."""
+    current_prefs = current_user.preferences or {}
+    
+    # Merge payload into current preferences
+    for key, value in payload.items():
+        current_prefs[key] = value
+        
+    current_user.preferences = current_prefs
+    
+    # SQLAlchemy requires this to detect JSONB changes in some versions
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(current_user, "preferences")
+    
+    await db.commit()
+    
+    return StandardResponseEnvelope(data=current_user.preferences)
+
+@router.patch("/me/status")
+async def update_status(
+    payload: StatusUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    emp_res = await db.execute(select(Employee).where(Employee.user_id == current_user.id))
+    emp = emp_res.scalar_one_or_none()
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee profile not found for current user")
+    
+    emp.availability_status = payload.availability_status
+    await db.commit()
+    
+    return StandardResponseEnvelope(data={"availability_status": emp.availability_status})
+
 
 @router.put("/me")
 async def update_me(
@@ -177,6 +219,13 @@ async def update_me(
                 emp.phone = payload.phone
             if payload.availability_status is not None:
                 emp.availability_status = payload.availability_status
+
+    # 4. Update Preferences
+    if payload.preferences is not None:
+        # Merge dicts
+        current_prefs = dict(current_user.preferences) if current_user.preferences else {}
+        current_prefs.update(payload.preferences)
+        current_user.preferences = current_prefs
                     
     await db.commit()
     

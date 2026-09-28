@@ -10,13 +10,14 @@ from app.schemas.user import (
     UserCreate,
     UserOut,
     UserRoleUpdate,
+    UserAdminUpdate,
     RoleDefinition,
     CustomRoleCreate,
     ALL_SYSTEM_PERMISSIONS,
     DEFAULT_ROLE_PERMISSIONS,
     get_effective_permissions,
 )
-from app.core.security import get_password_hash, RequireRole
+from app.core.security import get_password_hash, RequirePermission
 from app.schemas.responses import StandardResponseEnvelope
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -39,14 +40,6 @@ DYNAMIC_ROLE_REGISTRY: Dict[str, Dict[str, Any]] = {
         "description": "Visitor reception, meeting lifecycle control, shifts, and scheduling",
         "default_permissions": DEFAULT_ROLE_PERMISSIONS.get("HOST", []),
     },
-    "SECURITY": {
-        "description": "Lobby queue oversight, visitor badge printing, and security compliance audit logs",
-        "default_permissions": DEFAULT_ROLE_PERMISSIONS.get("OTHER", []),
-    },
-    "AUDITOR": {
-        "description": "Compliance oversight, reporting analysis, and immutable security audit logs",
-        "default_permissions": DEFAULT_ROLE_PERMISSIONS.get("OTHER", []),
-    },
     "OTHER": {
         "description": "Restricted base account with no active operational privileges",
         "default_permissions": DEFAULT_ROLE_PERMISSIONS.get("OTHER", []),
@@ -61,6 +54,8 @@ def _format_user_out(user: User) -> UserOut:
         id=user.id,
         email=user.email,
         role=user.role,
+        custom_role_name=user.custom_role_name,
+        description=user.description,
         permissions=effective_perms,
         is_active=user.is_active,
     )
@@ -69,7 +64,7 @@ def _format_user_out(user: User) -> UserOut:
 @router.get("/roles/catalog")
 async def get_roles_catalog(
     request: Request,
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN", "ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles", "5_compliance_reports"]))
 ):
     """Returns the full permission catalog and all dynamic role presets."""
     roles_list = [
@@ -97,7 +92,7 @@ async def get_roles_catalog(
 async def create_custom_role_preset(
     request: Request,
     payload: CustomRoleCreate,
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     """Allows Super Admin to register a brand new dynamic role preset with specific default capabilities."""
     role_name = payload.role.strip()
@@ -128,7 +123,7 @@ async def create_custom_role_preset(
 async def delete_custom_role_preset(
     request: Request,
     role_name: str,
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     """Allows Super Admin to delete a dynamic role preset from the catalog."""
     target_key = None
@@ -165,7 +160,7 @@ async def create_user(
     request: Request,
     payload: UserCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     # Check if user with email already exists
     result = await db.execute(select(User).where(User.email == payload.email))
@@ -187,6 +182,8 @@ async def create_user(
         email=payload.email,
         hashed_password=hashed_password,
         role=payload.role,
+        custom_role_name=payload.custom_role_name,
+        description=payload.description,
         permissions=permissions_str,
         is_active=True
     )
@@ -194,6 +191,19 @@ async def create_user(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
+
+    if payload.first_name and payload.last_name:
+        from app.db.models import Employee
+        new_employee = Employee(
+            user_id=new_user.id,
+            employee_id=f"EMP-{str(uuid.uuid4())[:6].upper()}",
+            full_name=f"{payload.first_name} {payload.last_name}",
+            department="Operations",
+            phone=payload.phone
+        )
+        db.add(new_employee)
+        await db.commit()
+
     
     return StandardResponseEnvelope(
         internalCode="SUCCESS-201",
@@ -211,7 +221,7 @@ async def list_users(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN", "ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     result = await db.execute(select(User).order_by(User.id).offset(skip).limit(limit))
     users = result.scalars().all()
@@ -231,7 +241,7 @@ async def update_user_role_and_permissions(
     user_id: str,
     payload: UserRoleUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     """
     Super Admin can dynamically give or take any role, modify granular permissions,
@@ -259,6 +269,12 @@ async def update_user_role_and_permissions(
     if payload.role is not None:
         target_user.role = payload.role
 
+    if payload.custom_role_name is not None:
+        target_user.custom_role_name = payload.custom_role_name
+
+    if payload.description is not None:
+        target_user.description = payload.description
+
     if payload.permissions is not None:
         target_user.permissions = ",".join(payload.permissions)
 
@@ -278,12 +294,55 @@ async def update_user_role_and_permissions(
     )
 
 
+@router.patch("/{user_id}/credentials")
+async def update_user_credentials(
+    request: Request,
+    user_id: str,
+    payload: UserAdminUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
+):
+    """
+    Super Admin can reset a user's password or change their email address.
+    """
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    target_user = result.scalar_one_or_none()
+    
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
+
+    if payload.email is not None and payload.email != target_user.email:
+        # Check if email is already taken
+        existing_res = await db.execute(select(User).where(User.email == payload.email))
+        if existing_res.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email address is already in use by another account."
+            )
+        target_user.email = payload.email
+
+    if payload.new_password is not None:
+        target_user.hashed_password = get_password_hash(payload.new_password)
+
+    await db.commit()
+    await db.refresh(target_user)
+
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="OK",
+        message="User credentials updated successfully.",
+        requestId=getattr(request.state, "request_id", "req-id-none"),
+        data=_format_user_out(target_user)
+    )
+
+
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
 async def delete_user(
     request: Request,
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN"]))
+    current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
     """Super Admin can delete a user account from the system."""
     if user_id == str(current_user.id):
@@ -317,7 +376,7 @@ async def get_audit_logs(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireRole(["SUPER_ADMIN", "AUDITOR"]))
+    current_user: User = Depends(RequirePermission(["1_central_ops"]))
 ):
     """Returns the system audit logs."""
     result = await db.execute(

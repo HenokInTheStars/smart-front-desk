@@ -16,6 +16,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
     const [assignedHostInfo, setAssignedHostInfo] = useState<{ host: string; department: string } | null>(null);
     const [hostAvailabilityStatus, setHostAvailabilityStatus] = useState<number>(1);
     const [hostUnavailableData, setHostUnavailableData] = useState<any | null>(null);
+    const [hostBusyData, setHostBusyData] = useState<any | null>(null);
     const [scheduledBookingInfo, setScheduledBookingInfo] = useState<{ host: string; scheduledTime: string; visitorName: string } | null>(null);
 
     const [formData, setFormData] = useState({
@@ -68,6 +69,12 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
             setFormError('');
             setIsEvaluating(true);
 
+            if (formData.purpose === 'Delivery') {
+                await executeCheckin();
+                setIsEvaluating(false);
+                return;
+            }
+
             try {
                 const now = new Date();
                 const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 19);
@@ -80,7 +87,11 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                 });
 
                 if (!evalData.is_available) {
-                    setHostUnavailableData(evalData);
+                    if (evalData.host_status === 3) {
+                        setHostBusyData(evalData);
+                    } else {
+                        setHostUnavailableData(evalData);
+                    }
                     setIsEvaluating(false);
                     return;
                 }
@@ -149,12 +160,23 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
         const hostName = hostUnavailableData.host_name;
         const dept = hostUnavailableData.host_department;
         setHostUnavailableData(null);
+        formData.notes = `[HOST_UNAVAILABLE_WAIT] ${formData.notes}`;
+        await executeCheckin(hostName, dept);
+    };
+
+    const handleBusyProceed = async () => {
+        if (!hostBusyData) return;
+        const hostName = hostBusyData.host_name;
+        const dept = hostBusyData.host_department;
+        setHostBusyData(null);
+        formData.notes = `[HOST_BUSY_WAIT] ${formData.notes}`;
         await executeCheckin(hostName, dept);
     };
 
     const handleBack = () => {
         setFormError('');
         setHostUnavailableData(null);
+        setHostBusyData(null);
         if (formStep === 1) {
             setScreen('landing');
         } else {
@@ -237,7 +259,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                     )}
 
                     {/* Step 2: Purpose & Notes (with real-time host shift check) */}
-                    {formStep === 2 && !hostUnavailableData && !scheduledBookingInfo && (
+                    {formStep === 2 && !hostUnavailableData && !hostBusyData && !scheduledBookingInfo && (
                         <form key="step2" id="step-form" onSubmit={handleNext} className="animate-slide-up absolute inset-0 px-8 md:px-12 py-8 bg-white">
                             <div className="text-center mb-6">
                                 <h3 className="text-2xl font-bold mb-1.5 text-slate-900">What brings you here?</h3>
@@ -265,16 +287,27 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                                        Additional Notes <span className="text-red-500">*</span>
+                                        {formData.purpose === 'Delivery' ? 'Recipient Name' : 'Additional Notes'} <span className="text-red-500">*</span>
                                     </label>
-                                    <textarea
-                                        rows={3}
-                                        required
-                                        value={formData.notes}
-                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all resize-none text-sm md:text-base leading-relaxed"
-                                        placeholder="Describe who you're meeting with, purpose of visit, or specific topic..."
-                                    />
+                                    {formData.purpose === 'Delivery' ? (
+                                        <input
+                                            type="text"
+                                            required
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all text-sm md:text-base leading-relaxed"
+                                            placeholder="Enter the name of the person receiving this delivery..."
+                                        />
+                                    ) : (
+                                        <textarea
+                                            rows={3}
+                                            required
+                                            value={formData.notes}
+                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all resize-none text-sm md:text-base leading-relaxed"
+                                            placeholder="Describe who you're meeting with, purpose of visit, or specific topic..."
+                                        />
+                                    )}
                                     <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
                                         <svg className="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                         Our AI instantly checks the host's shift schedule and real-time availability.
@@ -293,6 +326,58 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                             handleBookSuggestedSlot={handleBookSuggestedSlot}
                             isScheduling={isScheduling}
                         />
+                    )}
+
+                    {/* --- HOST BUSY / IN MEETING VIEW --- */}
+                    {hostBusyData && !scheduledBookingInfo && (
+                        <div className="animate-slide-up absolute inset-0 px-6 md:px-10 py-6 bg-white flex flex-col justify-between overflow-y-auto">
+                            <div>
+                                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-5 text-amber-900">
+                                    <div className="w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-sm text-amber-950">{hostBusyData.host_name} is currently Busy</h4>
+                                        <p className="text-xs text-amber-800">
+                                            The host is currently in a meeting or unavailable for walk-in guests.
+                                        </p>
+                                    </div>
+                                </div>
+                                {hostBusyData.nearest_slot && (
+                                    <div className="mb-4 flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg text-sm">
+                                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        <p>Next available slot: <span className="font-bold">{hostBusyData.nearest_slot.full_formatted}</span></p>
+                                    </div>
+                                )}
+                                <div className="mb-4 text-center">
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">Please leave a note</h3>
+                                    <p className="text-sm text-gray-500">
+                                        Your note will be sent directly to their personal queue so they can see you're waiting.
+                                    </p>
+                                </div>
+                                <textarea
+                                    rows={4}
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] focus:ring-1 focus:ring-[#0058be] outline-none transition-all resize-none text-sm md:text-base leading-relaxed"
+                                    placeholder="Add any extra details here..."
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 mt-6 pt-4 border-t border-gray-100">
+                                <button
+                                    onClick={handleBack}
+                                    className="px-6 py-3.5 rounded-xl border-2 border-gray-200 text-gray-700 font-bold hover:bg-gray-50 hover:border-gray-300 transition-colors w-1/3"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleBusyProceed}
+                                    className="px-6 py-3.5 rounded-xl bg-[#0058be] text-white font-bold hover:bg-[#004799] transition-colors w-2/3 shadow-md shadow-blue-500/20"
+                                >
+                                    Notify Host & Wait
+                                </button>
+                            </div>
+                        </div>
                     )}
 
                     {/* --- CONFIRMATION 1: APPOINTMENT SCHEDULED FOR SUGGESTED SLOT --- */}
@@ -344,9 +429,11 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
 
                             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 my-4 max-w-sm w-full text-center shadow-sm">
                                 <p className="text-base font-bold text-slate-900">
-                                    {hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4
-                                        ? "You will be notified."
-                                        : `The host will notify you to enter.`}
+                                    {formData.purpose === 'Delivery'
+                                        ? "The recipient will contact you."
+                                        : (hostAvailabilityStatus === 2 || hostAvailabilityStatus === 4
+                                            ? "You will be notified."
+                                            : `The host will notify you to enter.`)}
                                 </p>
                             </div>
 
@@ -358,7 +445,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                 </div>
 
                 {/* Bottom Navigation Toolbar */}
-                {formStep < 3 && !hostUnavailableData && !scheduledBookingInfo && (
+                {formStep < 3 && !hostUnavailableData && !hostBusyData && !scheduledBookingInfo && (
                     <div className="border-t border-gray-100 bg-white px-8 md:px-10 py-5 shrink-0">
                         {formError && (
                             <div className="text-red-600 bg-red-50 p-3 rounded-lg font-semibold mb-3 flex items-center justify-center gap-2 text-xs md:text-sm border border-red-200 animate-slide-up">

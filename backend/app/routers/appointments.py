@@ -1,13 +1,23 @@
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from sqlalchemy import select
 from app.db.session import get_db
-from app.db.models import Appointment
+from app.db.models import Appointment, Employee, User
 from app.schemas.appointment import AppointmentCreate, AppointmentOut, AppointmentUpdate
 from app.schemas.responses import StandardResponseEnvelope
 from app.services.sms_service import send_sms
+from app.services.email_service import send_email
+from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
+
+class PingHostRequest(BaseModel):
+    method: str  # "SMS", "Email"
+
 import uuid
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
@@ -121,6 +131,14 @@ async def update_appointment(
 
     if payload.status is not None:
         apt.status = payload.status
+        now = datetime.now(timezone.utc)
+        if payload.status == "CHECKED_IN" and not apt.checked_in_at:
+            apt.checked_in_at = now
+        elif payload.status == "IN_MEETING" and not apt.admitted_at:
+            apt.admitted_at = now
+        elif payload.status == "COMPLETED" and not apt.checked_out_at:
+            apt.checked_out_at = now
+            
     if payload.notes is not None:
         apt.notes = payload.notes
     if payload.host_id is not None:
@@ -170,3 +188,104 @@ async def delete_appointment(appointment_id: str, db: AsyncSession = Depends(get
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
     await db.delete(apt)
     await db.commit()
+
+
+@router.post("/{appointment_id}/notify-enter")
+async def notify_enter(
+    appointment_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Appointment).options(joinedload(Appointment.visitor), joinedload(Appointment.host)).where(Appointment.id == uuid.UUID(appointment_id))
+    )
+    apt = result.scalar_one_or_none()
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+        
+    if apt.visitor and apt.visitor.phone:
+        host_name = apt.host.full_name if apt.host else "Your host"
+        message = f"Smart Front Desk: {host_name} is ready for you. Please enter to the host in 5 min."
+        background_tasks.add_task(send_sms, apt.visitor.phone, message)
+        
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message="Notification sent",
+        requestId=getattr(request.state, "request_id", "req-none"),
+        data=None
+    )
+
+@router.post("/{appointment_id}/ping-host")
+async def ping_host(
+    appointment_id: str,
+    payload: PingHostRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(Appointment).options(joinedload(Appointment.visitor), joinedload(Appointment.host).joinedload(Employee.user)).where(Appointment.id == uuid.UUID(appointment_id))
+    )
+    apt = result.scalar_one_or_none()
+    if not apt:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+        
+    guest_name = apt.visitor.full_name if apt.visitor else "A guest"
+    
+    if payload.method == "SMS":
+        if apt.host and apt.host.phone:
+            message = f"Smart Front Desk: Your guest {guest_name} has been waiting for a while. Please collect them."
+            background_tasks.add_task(send_sms, apt.host.phone, message)
+        else:
+            raise HTTPException(status_code=400, detail="Host has no phone number registered.")
+            
+    elif payload.method == "Email":
+        if apt.host and apt.host.user and apt.host.user.email:
+            subject = "Guest Waiting Notification"
+            content = f"Hello {apt.host.full_name},\n\nYour guest {guest_name} has been waiting for a while at the front desk. Please collect them as soon as possible.\n\nThank you,\nSmart Front Desk"
+            background_tasks.add_task(send_email, apt.host.user.email, subject, content)
+        else:
+            raise HTTPException(status_code=400, detail="Host has no email registered.")
+
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message=f"Pinged host via {payload.method}",
+        requestId=getattr(request.state, "request_id", "req-none"),
+        data=None
+    )
+
+@router.post("/ping-all-hosts")
+async def ping_all_hosts(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    # Find all checked in guests
+    result = await db.execute(
+        select(Appointment)
+        .options(joinedload(Appointment.visitor), joinedload(Appointment.host).joinedload(Employee.user))
+        .where(Appointment.status == "CHECKED_IN")
+    )
+    apts = result.scalars().all()
+    count = 0
+    for apt in apts:
+        guest_name = apt.visitor.full_name if apt.visitor else "A guest"
+        if apt.host and apt.host.user and apt.host.user.email:
+            subject = "Action Required: Guest Waiting"
+            content = f"Hello {apt.host.full_name},\n\nYour guest {guest_name} is currently waiting at the front desk.\n\nThank you,\nSmart Front Desk"
+            background_tasks.add_task(send_email, apt.host.user.email, subject, content)
+            count += 1
+            
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message=f"Sent emails to {count} hosts with waiting guests.",
+        requestId=getattr(request.state, "request_id", "req-none"),
+        data=None
+    )

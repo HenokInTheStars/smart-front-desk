@@ -21,7 +21,7 @@ async def seed():
             admin = User(
                 email="admin@example.com",
                 hashed_password=get_password_hash("secret"),
-                role="admin"
+                role="SUPER_ADMIN"
             )
             session.add(admin)
             await session.commit()

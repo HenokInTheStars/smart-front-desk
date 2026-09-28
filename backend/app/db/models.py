@@ -11,11 +11,10 @@ from sqlalchemy import (
     Enum,
     text
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 
-user_role_enum = Enum("SUPER_ADMIN", "ADMIN", "HOST", "RECEPTION", "OTHER", name="user_role_enum")
 appointment_status_enum = Enum("SCHEDULED", "EXPECTED", "CHECKED_IN", "IN_MEETING", "COMPLETED", "CANCELLED", "NEEDS_REASSIGNMENT", name="appointment_status_enum")
 
 
@@ -23,14 +22,19 @@ class Base(DeclarativeBase):
     pass
 
 
+user_role_enum = Enum("SUPER_ADMIN", "ADMIN", "RECEPTION", "HOST", "OTHER", name="user_role_enum")
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(user_role_enum, default="OTHER", nullable=False)  # Super Admin, Admin, Host, Reception, Other
+    role = Column(user_role_enum, default="OTHER", nullable=False)
+    custom_role_name = Column(String, nullable=True)  # Custom title when role is OTHER
+    description = Column(Text, nullable=True)  # Used for AI Host Recommendation
     permissions = Column(Text, default="", nullable=True)  # Comma-separated or custom capability keys
+    preferences = Column(JSONB, server_default='{}', nullable=False) # Store arbitrary account settings
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -81,6 +85,9 @@ class Appointment(Base):
     scheduled_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(appointment_status_enum, default="SCHEDULED", nullable=False)  # Scheduled, Checked In, Completed, Cancelled
     notes = Column(Text, nullable=True)
+    checked_in_at = Column(DateTime(timezone=True), nullable=True)
+    admitted_at = Column(DateTime(timezone=True), nullable=True)
+    checked_out_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -125,3 +132,10 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User")
+
+class SystemSettings(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String, primary_key=True, index=True)
+    value = Column(JSONB, server_default='{}', nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

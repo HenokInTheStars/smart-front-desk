@@ -29,6 +29,9 @@ services:
     command: npm run dev
     ports: [ "3000:3000" ]
     env_file: ./frontend/.env.local
+    environment:
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     depends_on: [ backend ]
     volumes: [ "./frontend:/app", "/app/node_modules" ]
 
