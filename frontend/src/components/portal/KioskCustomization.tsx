@@ -114,9 +114,9 @@ export default function KioskCustomization({ currentUser }: KioskCustomizationPr
         
         <div className="p-5 space-y-6">
           {slides.map((slide, index) => (
-            <div key={index} className="flex flex-col gap-4 p-4 border border-border rounded-xl bg-slate-50/50">
+            <div key={index} className="flex flex-col gap-4 p-4 border border-border rounded-xl bg-muted/20">
               <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-sm text-slate-500">Slide {index + 1}</span>
+                <span className="font-bold text-sm text-muted-foreground">Slide {index + 1}</span>
                 {slides.length > 1 && (
                   <button onClick={() => removeSlide(index)} className="text-rose-500 hover:text-rose-700 p-1">
                     <Trash2 size={16} />
@@ -126,7 +126,7 @@ export default function KioskCustomization({ currentUser }: KioskCustomizationPr
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                     <ImageIcon size={14} /> Background Image URL
                   </label>
                   <div className="flex gap-2 items-center">
@@ -134,10 +134,10 @@ export default function KioskCustomization({ currentUser }: KioskCustomizationPr
                       type="text"
                       value={slide.image}
                       onChange={(e) => updateSlide(index, 'image', e.target.value)}
-                      className="flex-1 text-sm p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
+                      className="flex-1 text-sm p-2.5 rounded-lg border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-background text-foreground"
                       placeholder="url('/my-image.jpg')"
                     />
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold px-3 py-2.5 rounded-lg border border-slate-200 transition-colors whitespace-nowrap">
+                    <label className="cursor-pointer bg-muted hover:bg-muted/80 text-foreground text-sm font-semibold px-3 py-2.5 rounded-lg border border-border transition-colors whitespace-nowrap">
                       Upload
                       <input 
                         type="file" 
@@ -154,14 +154,14 @@ export default function KioskCustomization({ currentUser }: KioskCustomizationPr
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-slate-600 flex items-center gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
                     <Type size={14} /> Welcome Text
                   </label>
                   <input
                     type="text"
                     value={slide.text}
                     onChange={(e) => updateSlide(index, 'text', e.target.value)}
-                    className="w-full text-sm p-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
+                    className="w-full text-sm p-2.5 rounded-lg border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-background text-foreground"
                     placeholder="Welcome to our office"
                   />
                 </div>
