@@ -11,7 +11,6 @@ from app.schemas.user import (
     UserOut,
     UserRoleUpdate,
     UserAdminUpdate,
-    RoleDefinition,
     CustomRoleCreate,
     ALL_SYSTEM_PERMISSIONS,
     DEFAULT_ROLE_PERMISSIONS,

@@ -8,10 +8,8 @@ from app.db.models import Visitor, Employee, Appointment
 from app.schemas.visitor import (
     VisitorCreate,
     VisitorOut,
-    VisitorUpdate,
     CheckInRequest,
     ScheduleSlotRequest,
-    ScheduleSlotResponse,
 )
 from app.schemas.responses import StandardResponseEnvelope
 from app.services.ai_routing import match_host_for_visitor

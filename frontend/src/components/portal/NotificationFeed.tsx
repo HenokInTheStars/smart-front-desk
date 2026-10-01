@@ -5,9 +5,10 @@ import { Bell, Clock, Info, CheckCircle2, User } from 'lucide-react';
 
 interface NotificationFeedProps {
   currentUser: any;
+  isPanel?: boolean;
 }
 
-export default function NotificationFeed({ currentUser }: NotificationFeedProps) {
+export default function NotificationFeed({ currentUser, isPanel = false }: NotificationFeedProps) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,23 +50,25 @@ export default function NotificationFeed({ currentUser }: NotificationFeedProps)
   }, [currentUser]);
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Notification Feed</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Stay updated on visitor arrivals, schedule changes, and alerts.
-          </p>
+    <div className={`space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ${isPanel ? 'w-full p-4' : 'max-w-4xl mx-auto pb-12'}`}>
+      {!isPanel && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Notification Feed</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Stay updated on visitor arrivals, schedule changes, and alerts.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+             <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
+               <Bell size={14} />
+               {notifications.filter(n => n.isNew).length} New Alerts
+             </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-           <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
-             <Bell size={14} />
-             {notifications.filter(n => n.isNew).length} New Alerts
-           </span>
-        </div>
-      </div>
+      )}
 
-      <div className="bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
+      <div className={`bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden ${isPanel ? 'rounded-2xl border-none shadow-none' : 'rounded-3xl'}`}>
         {isLoading ? (
            <div className="p-8 text-center text-muted-foreground">Loading notifications...</div>
         ) : notifications.length === 0 ? (

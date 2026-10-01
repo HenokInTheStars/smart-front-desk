@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from app.core.security import verify_password, create_access_token, get_password_hash, get_current_user
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from app.db.session import get_db
@@ -13,7 +12,6 @@ from app.schemas.auth import (
     LoginRequest,
     RefreshRequest,
     RefreshResponse,
-    TokenResponse,
     ProfileUpdateRequest,
     StatusUpdateRequest,
 )

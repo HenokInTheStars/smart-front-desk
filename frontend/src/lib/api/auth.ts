@@ -28,20 +28,3 @@ export async function getMe(accessToken: string) {
     return result.data !== undefined ? result.data : result;
 }
 
-export async function updatePreferences(accessToken: string, preferences: any) {
-    const response = await fetch(`${getBaseUrl()}/auth/me/preferences`, {
-        method: 'PATCH',
-        headers: { 
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(preferences)
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to update preferences.');
-    }
-
-    const result = await response.json();
-    return result.data !== undefined ? result.data : result;
-}

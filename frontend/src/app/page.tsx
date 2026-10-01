@@ -56,7 +56,7 @@ export default function LoginSample() {
   return (
     <div 
       className="min-h-screen flex flex-col justify-center items-center px-4 font-sans antialiased text-slate-900" 
-      style={{ backgroundImage: "url('/login-bg.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{ backgroundImage: "url('/login-bg-new.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
       <PulseBurstLoader size={220} isLoading={isLoading}>
         <div style={{ display: message.includes('✓') ? 'none' : 'block' }}>

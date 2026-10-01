@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare } from 'lucide-react';
+import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus } from 'lucide-react';
+import PreRegisterForm from './PreRegisterForm';
 
 interface PersonalQueueProps {
   currentUser: any;
@@ -15,6 +16,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
   const [showAlert, setShowAlert] = useState(true);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showPreRegister, setShowPreRegister] = useState(false);
 
   useEffect(() => {
     const fetchMyQueue = async () => {
@@ -118,51 +120,22 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-5 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-            {currentUser?.full_name || 'Host'} — <span className="font-semibold text-slate-500">Host Station</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">{currentUser?.department || 'Operations'}</p>
-        </div>
-        <div className="flex items-center gap-6 mt-4 sm:mt-0">
-          <Clock className="text-slate-400" size={20} />
-          {inMeetingCount > 0 ? (
-            <span className="bg-amber-100 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm transition-all duration-300">
-               <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse"></span> In Meeting (Busy)
-            </span>
-          ) : (
-            <span className="bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 shadow-sm transition-all duration-300">
-               <span className="w-2 h-2 rounded-full bg-emerald-600"></span> Available
-            </span>
-          )}
-          <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold shadow-sm">
-            {currentUser?.full_name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2) || 'HS'}
+      {/* Pre-Register Modal */}
+      {showPreRegister && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-card border border-border shadow-xl rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
+            <PreRegisterForm currentUser={currentUser} onClose={() => setShowPreRegister(false)} />
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="border border-amber-200 bg-white text-amber-600 rounded-xl p-4 text-sm font-bold flex items-center justify-center shadow-sm">
-          Ready to be admitted ({waitingCount})
-        </div>
-        <div className="border border-blue-200 bg-white text-blue-600 rounded-xl p-4 text-sm font-bold flex items-center justify-center shadow-sm">
-          Active discussions ({inMeetingCount})
-        </div>
-        <div className="border border-indigo-200 bg-white text-indigo-600 rounded-xl p-4 text-sm font-bold flex items-center justify-center shadow-sm">
-          Pre-booked via Kiosk/Host ({prebookedCount})
-        </div>
-        <div className="border border-emerald-200 bg-white text-emerald-600 rounded-xl p-4 text-sm font-bold flex items-center justify-center shadow-sm">
-          Concluded visits ({completedCount})
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 mb-6 overflow-x-auto">
-        <button 
-          onClick={() => setActiveTab('live')}
+
+      {/* Tabs and Actions */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-200 mb-6 gap-4">
+        <div className="flex overflow-x-auto">
+          <button 
+            onClick={() => setActiveTab('live')}
           className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'live' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
         >
           <Users size={18} /> Live Assigned Queue ({waitingCount + inMeetingCount})
@@ -175,10 +148,19 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         </button>
         <button 
           onClick={() => setActiveTab('completed')}
-          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'completed' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-        >
-          <Clock size={18} /> Completed Past Visits ({completedCount})
-        </button>
+            className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'completed' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Clock size={18} /> Completed Past Visits ({completedCount})
+          </button>
+        </div>
+        <div className="pb-4 lg:pb-0">
+          <button 
+            onClick={() => setShowPreRegister(true)} 
+            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2"
+          >
+             <UserPlus size={16} /> Pre-Register Guest
+          </button>
+        </div>
       </div>
 
       {/* Sorting Subheader */}

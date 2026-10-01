@@ -5,9 +5,10 @@ import { Monitor, Send, MessageSquare, Clock, User } from 'lucide-react';
 
 interface KioskCommunicationProps {
   currentUser: any;
+  isPanel?: boolean;
 }
 
-export default function KioskCommunication({ currentUser }: KioskCommunicationProps) {
+export default function KioskCommunication({ currentUser, isPanel = false }: KioskCommunicationProps) {
   const [message, setMessage] = useState('');
   const [activeVisitors, setActiveVisitors] = useState<any[]>([]);
   const [selectedVisitor, setSelectedVisitor] = useState<any>(null);
@@ -90,21 +91,23 @@ export default function KioskCommunication({ currentUser }: KioskCommunicationPr
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto h-[calc(100vh-120px)] flex flex-col">
+    <div className={`space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col ${isPanel ? 'w-full h-full p-0' : 'max-w-5xl mx-auto h-[calc(100vh-120px)]'}`}>
       
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Kiosk Communication</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Send real-time updates directly to the lobby kiosk screen for your waiting guests.
-          </p>
+      {!isPanel && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Kiosk Communication</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Send real-time updates directly to the lobby kiosk screen for your waiting guests.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col lg:flex-row">
+      <div className={`flex-1 bg-card border border-border overflow-hidden flex flex-col ${isPanel ? 'border-none rounded-none' : 'rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] lg:flex-row'}`}>
         
         {/* Active Visitors List (Left Sidebar) */}
-        <div className="w-full lg:w-1/3 border-b lg:border-b-0 lg:border-r border-border bg-muted/30 flex flex-col">
+        <div className={`w-full border-b border-border bg-muted/30 flex flex-col ${isPanel ? 'shrink-0 h-48 overflow-y-auto' : 'lg:w-1/3 lg:border-b-0 lg:border-r'}`}>
            <div className="p-4 border-b border-border bg-card">
              <h3 className="font-bold text-foreground text-sm">Active Visitors</h3>
            </div>
@@ -134,7 +137,7 @@ export default function KioskCommunication({ currentUser }: KioskCommunicationPr
         </div>
 
         {/* Chat Area (Right Side) */}
-        <div className="w-full lg:w-2/3 flex flex-col h-full bg-card relative">
+        <div className={`w-full flex flex-col h-full bg-card relative ${isPanel ? 'flex-1' : 'lg:w-2/3'}`}>
           
           {/* Chat Header */}
           <div className="p-4 border-b border-border/50 flex items-center justify-between bg-card shrink-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
