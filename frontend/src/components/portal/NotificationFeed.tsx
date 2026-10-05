@@ -82,14 +82,14 @@ export default function NotificationFeed({ currentUser, isPanel = false }: Notif
         ) : (
            <div className="divide-y divide-border/50">
              {notifications.map((notif, idx) => (
-               <div key={notif.id || idx} className={`p-6 hover:bg-muted/30 transition-colors flex gap-4 ${notif.isNew ? 'bg-blue-50/30' : ''}`}>
+               <div key={notif.id || idx} className={`p-6 hover:bg-muted/30 transition-colors flex gap-4 ${notif.isNew ? 'bg-primary/10/30' : ''}`}>
                  <div className="shrink-0 mt-1">
                    {notif.status === 'CHECKED_IN' ? (
-                     <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center border border-blue-200">
+                     <div className="w-10 h-10 rounded-full bg-blue-100 text-primary flex items-center justify-center border border-blue-200">
                        <User size={18} />
                      </div>
                    ) : (
-                     <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center border border-border/50">
+                     <div className="w-10 h-10 rounded-full bg-slate-100 text-muted-foreground flex items-center justify-center border border-border/50">
                        <Clock size={18} />
                      </div>
                    )}

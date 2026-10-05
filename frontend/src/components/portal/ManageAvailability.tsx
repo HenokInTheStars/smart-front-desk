@@ -186,11 +186,11 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
         </div>
         
         {/* Small Status Pills */}
-        <div className="flex items-center gap-1.5 bg-card border border-border p-1.5 rounded-full shadow-sm shrink-0 overflow-x-auto max-w-full">
+        <div className="flex items-center gap-1.5 bg-card border border-border p-1.5 rounded-full shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0 overflow-x-auto max-w-full">
            <button 
              onClick={() => handleStatusChange('available')}
              className={`px-4 py-2 rounded-full text-[11px] font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-               status === 'available' ? 'bg-emerald-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
+               status === 'available' ? 'bg-emerald-500 text-white shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'text-muted-foreground hover:bg-muted'
              }`}
            >
               <Clock size={14} /> Available
@@ -198,7 +198,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
            <button 
              onClick={() => handleStatusChange('in_meeting')}
              className={`px-4 py-2 rounded-full text-[11px] font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-               status === 'in_meeting' ? 'bg-amber-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
+               status === 'in_meeting' ? 'bg-amber-500 text-white shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'text-muted-foreground hover:bg-muted'
              }`}
            >
               <CalendarIcon size={14} /> Available (No Guests)
@@ -206,7 +206,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
            <button 
              onClick={() => handleStatusChange('ooo')}
              className={`px-4 py-2 rounded-full text-[11px] font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-               status === 'ooo' ? 'bg-rose-500 text-white shadow-md' : 'text-muted-foreground hover:bg-muted'
+               status === 'ooo' ? 'bg-rose-500 text-white shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'text-muted-foreground hover:bg-muted'
              }`}
            >
               <Plane size={14} /> Not Available
@@ -221,7 +221,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
         <div className="w-full lg:w-[420px] flex flex-col gap-6 overflow-y-auto pr-2 pb-4 shrink-0">
           
           {/* Weekly Working Hours */}
-          <div className="bg-card border border-border p-5 rounded-3xl shadow-sm shrink-0">
+          <div className="bg-card border border-border p-5 rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0">
             <h2 className="text-xs font-bold text-foreground uppercase tracking-wider mb-4 border-b border-border/50 pb-2">Weekly Working Hours</h2>
             
             <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
               <button 
                 onClick={handleSave}
                 disabled={isSaving}
-                className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-xs hover:bg-primary/90 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-xs hover:bg-primary/90 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Save size={14} /> {isSaving ? 'Saving...' : 'Save Schedule'}
               </button>
@@ -286,7 +286,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
         </div>
 
         {/* Right Column (Giant Calendar) */}
-        <div className="flex-1 bg-card border border-border rounded-3xl shadow-sm flex flex-col overflow-hidden min-h-[500px]">
+        <div className="flex-1 bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col overflow-hidden min-h-[500px]">
           {/* Calendar & OOO Header */}
           <div className="flex flex-col border-b border-border/50 shrink-0">
              
@@ -320,7 +320,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
              </div>
 
              {(oooStart || oooEnd) && (
-               <div className="mx-4 mb-4 text-[10px] text-rose-600 font-bold flex items-center justify-center gap-2 bg-rose-50 p-2 rounded-md border border-rose-200 leading-tight">
+               <div className="mx-4 mb-4 text-[10px] text-destructive font-bold flex items-center justify-center gap-2 bg-destructive/10 p-2 rounded-md border border-destructive/20 leading-tight">
                  <Info size={14} className="shrink-0" /> Guests will be routed automatically to reception on these dates. Remember to save schedule.
                </div>
              )}
@@ -328,7 +328,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
              {/* Month Navigation */}
              <div className="flex items-center justify-between p-3 bg-muted/30 border-t border-border/50">
                 <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Appointments</h2>
-                <div className="flex items-center gap-3 bg-card border border-border rounded-full px-2 py-1 shadow-sm">
+                <div className="flex items-center gap-3 bg-card border border-border rounded-full px-2 py-1 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                   <button onClick={prevMonth} className="p-1 rounded-full hover:bg-muted text-muted-foreground transition-colors"><ChevronLeft size={16}/></button>
                   <span className="text-xs font-bold text-foreground w-28 text-center uppercase tracking-widest">
                     {currentMonth.toLocaleString('default', { month: 'short', year: 'numeric' })}
@@ -377,7 +377,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
                   
                   <div className="flex flex-col gap-1 mt-1">
                     {dayApts.map((apt, i) => (
-                      <div key={i} className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-bold px-1.5 py-1 rounded-md flex flex-col shadow-sm" title={apt.visitor?.full_name}>
+                      <div key={i} className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-[9px] font-bold px-1.5 py-1 rounded-md flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.02)]" title={apt.visitor?.full_name}>
                         <span className="truncate leading-tight">{apt.visitor?.full_name || 'Guest'}</span>
                         <span className="opacity-70 text-[8px]">{new Date(apt.scheduled_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                       </div>

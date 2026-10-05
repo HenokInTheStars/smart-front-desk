@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_db
 from app.db.models import User, AuditLog
@@ -350,14 +351,26 @@ async def delete_user(
             detail="You cannot delete your own Super Admin account."
         )
 
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+
+    result = await db.execute(select(User).where(User.id == user_uuid))
     target_user = result.scalar_one_or_none()
 
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
 
-    await db.delete(target_user)
-    await db.commit()
+    try:
+        await db.delete(target_user)
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user because they have associated records (e.g., employee profile, appointments). Please remove associated records first."
+        )
 
     return StandardResponseEnvelope(
         internalCode="SUCCESS-200",

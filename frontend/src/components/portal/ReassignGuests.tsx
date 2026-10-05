@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { BellRing, CheckCircle2, UserCircle2, MapPin, Search } from 'lucide-react';
 
-interface ArrivalAlertsProps {
+interface ReassignGuestsProps {
   currentUser: any;
 }
 
-export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
+export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,10 +19,6 @@ export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
       const token = sessionStorage.getItem('access_token');
       if (!token) return;
 
-      // In a real system, you might filter this by a specific endpoint for 'all alerts'
-      // Since NEEDS_REASSIGNMENT implies action needed by Reception, we fetch all appointments.
-      // We pass no host_id so it fetches all, then filter.
-      // (If the API enforces host_id, you might need a different endpoint, but we'll try this first).
       const res = await fetch(`http://localhost:8000/appointments`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -88,7 +84,6 @@ export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
   useEffect(() => {
     fetchAlerts();
     fetchEmployees();
-    // Poll every 10 seconds for new alerts
     const interval = setInterval(fetchAlerts, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -124,7 +119,7 @@ export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
         },
         body: JSON.stringify({ 
           host_id: selectedHostId,
-          status: 'CHECKED_IN' // Moving them back to the lobby pool for the new host
+          status: 'CHECKED_IN'
         })
       });
       if (res.ok) {
@@ -138,13 +133,13 @@ export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Notification Feed</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Reassign Guests</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Live updates for visitors who need reassignment or immediate attention.
+            Manage visitors whose original hosts are unavailable or requested reassignment.
           </p>
         </div>
         <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-xl font-bold text-sm border border-red-200">
@@ -175,87 +170,87 @@ export default function ArrivalAlerts({ currentUser }: ArrivalAlertsProps) {
              alerts.map(alert => (
                <div key={alert.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-muted/10 transition-colors">
                   <div className="flex items-start gap-4">
-                     <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0">
-                       <UserCircle2 size={24} />
+                     <div className="w-10 h-10 bg-red-50 text-red-600 border border-red-100 rounded-full flex items-center justify-center shrink-0">
+                       <UserCircle2 size={20} />
                      </div>
                      <div>
                        <div className="flex items-center gap-2 mb-1">
                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold text-white uppercase tracking-wider ${alert.needsReassignment ? 'bg-red-500' : 'bg-amber-500'}`}>
                            {alert.type}
                          </span>
-                         <span className="text-xs text-muted-foreground font-medium">{alert.time}</span>
+                         <span className="text-[11px] text-muted-foreground font-medium">{alert.time}</span>
                        </div>
-                       <h3 className="text-lg font-bold text-foreground">
-                         <span className="text-foreground">{alert.visitorName}</span> ({alert.company})
-                         {alert.phone && <span className="text-sm font-normal text-muted-foreground ml-2">📞 {alert.phone}</span>}
-                       </h3>
-                       <p className="text-sm text-muted-foreground mt-1">
+                       <div className="flex items-center gap-2">
+                         <h3 className="text-base font-bold text-foreground">
+                           {alert.visitorName} <span className="text-muted-foreground font-medium text-sm">({alert.company})</span>
+                         </h3>
+                         {alert.phone && <span className="text-xs text-muted-foreground"> • {alert.phone}</span>}
+                       </div>
+                       <p className="text-xs text-muted-foreground mt-1 max-w-lg">
                          {alert.type === 'Delivery Arrived' ? (
-                           <>Dropped off a delivery for <span className="font-semibold text-foreground">{alert.notes}</span>.</>
+                           <>Delivery for <span className="font-semibold text-foreground">{alert.notes}</span>.</>
                          ) : alert.needsReassignment ? (
-                           <>Originally assigned to <span className="font-semibold text-foreground">{alert.originalHostName}</span>, who marked them as "Not Mine".</>
+                           <>Rejected by <span className="font-semibold text-foreground">{alert.originalHostName}</span>.</>
                          ) : (
-                           <>Waiting for <span className="font-semibold text-foreground">{alert.originalHostName}</span>, who is currently busy.</>
+                           <>Waiting for <span className="font-semibold text-foreground">{alert.originalHostName}</span> (Busy).</>
+                         )}
+                         {alert.type !== 'Delivery Arrived' && alert.notes && (
+                           <span className="ml-1 text-muted-foreground/80">"{alert.notes}"</span>
                          )}
                        </p>
-                       {alert.type !== 'Delivery Arrived' && (
-                         <p className="text-sm text-foreground bg-muted p-2 rounded mt-2 border border-border/50">
-                           <span className="font-semibold">Notes:</span> {alert.notes}
-                         </p>
-                       )}
                      </div>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
                      {alert.type === 'Delivery Arrived' ? (
                         <button 
                           onClick={() => dismissAlert(alert.id)}
-                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-colors shadow-sm text-center"
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-center"
                         >
-                          OK / Acknowledge
+                          Acknowledge
                         </button>
                      ) : reassigningAlertId === alert.id ? (
                        <div className="flex flex-col gap-2 min-w-[200px] animate-in fade-in zoom-in-95 duration-200">
                          <select 
-                           className="px-3 py-2 border border-border rounded-xl text-sm bg-card text-foreground"
+                           className="px-2.5 py-1.5 border border-border rounded-lg text-xs bg-card text-foreground"
                            value={selectedHostId}
                            onChange={(e) => setSelectedHostId(e.target.value)}
                          >
                            <option value="" disabled>Select new host...</option>
                            {employees.map(emp => (
-                             <option key={emp.id} value={emp.id}>{emp.full_name} ({emp.department})</option>
+                             <option key={emp.id} value={emp.id}>{emp.full_name}</option>
                            ))}
                          </select>
                          <div className="flex gap-2">
                            <button 
                              onClick={() => setReassigningAlertId(null)}
-                             className="flex-1 px-3 py-2 bg-muted text-muted-foreground hover:bg-muted/80 font-bold text-sm rounded-xl transition-colors text-center"
+                             className="flex-1 px-3 py-1.5 bg-muted text-muted-foreground hover:bg-muted/80 font-bold text-xs rounded-lg transition-colors text-center"
                            >
                              Cancel
                            </button>
                            <button 
                              onClick={() => submitReassignment(alert.id)}
                              disabled={!selectedHostId}
-                             className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-colors shadow-sm text-center"
+                             className="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-center"
                            >
                              Confirm
                            </button>
                          </div>
                        </div>
                      ) : (
-                       <>
+                       <div className="flex flex-row md:flex-col gap-2">
                          <button 
                            onClick={() => { setReassigningAlertId(alert.id); setSelectedHostId(''); }}
-                           className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm rounded-xl transition-colors shadow-sm text-center"
+                           className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-center"
                          >
-                           Reassign Host
+                           Reassign
                          </button>
                          <button 
                            onClick={() => dismissAlert(alert.id)}
-                           className="px-5 py-2.5 bg-card border border-border hover:bg-muted text-foreground font-bold text-sm rounded-xl transition-colors text-center"
+                           className="px-3 py-1.5 bg-card border border-border hover:bg-muted text-foreground font-bold text-xs rounded-lg transition-colors text-center"
                          >
-                           Dismiss / Cancel
+                           Dismiss
                          </button>
-                       </>
+                       </div>
                      )}
                   </div>
                </div>

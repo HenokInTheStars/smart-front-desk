@@ -10,6 +10,7 @@ interface PreRegisterFormProps {
 
 export default function PreRegisterForm({ currentUser, onClose }: PreRegisterFormProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,6 +21,8 @@ export default function PreRegisterForm({ currentUser, onClose }: PreRegisterFor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const token = sessionStorage.getItem('access_token');
       if (!token) return;
@@ -55,6 +58,8 @@ export default function PreRegisterForm({ currentUser, onClose }: PreRegisterFor
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -167,8 +172,8 @@ export default function PreRegisterForm({ currentUser, onClose }: PreRegisterFor
           </div>
 
           <div className="pt-6 border-t border-border/50 flex justify-end">
-            <button type="submit" className="px-6 py-3 bg-primary hover:opacity-90 text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-sm flex items-center gap-2">
-              <Send size={16} /> Send Invitation
+            <button disabled={isSubmitting} type="submit" className="px-6 py-3 bg-primary hover:opacity-90 disabled:opacity-50 text-primary-foreground rounded-xl text-sm font-bold transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-2">
+              <Send size={16} /> {isSubmitting ? 'Sending...' : 'Send Invitation'}
             </button>
           </div>
         </form>

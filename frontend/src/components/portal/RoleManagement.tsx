@@ -20,12 +20,12 @@ const ALL_PERMISSIONS = [
   { id: '8_manual_override', label: 'Manual Check-in', category: 'Reception' },
   { id: '9_manage_badges', label: 'Badge Management', category: 'Reception' },
   { id: '10_manage_checkout', label: 'Checkout Management', category: 'Reception' },
+  { id: '21_reassign_guests', label: 'Reassign Guests', category: 'Reception' },
   { id: '11_monitor_watchlists', label: 'Watchlist Monitor', category: 'Security' },
   { id: '12_host_followup', label: 'Host Follow-up', category: 'Reception' },
   { id: '13_personal_queue', label: 'Personal Visitor Queue', category: 'Host' },
   { id: '14_pre_register', label: 'Pre-Register Guests', category: 'Host' },
   { id: '15_manage_availability', label: 'Schedule Management', category: 'Host' },
-  { id: '16_arrival_alerts', label: 'Arrival Alerts', category: 'Host' },
   { id: '17_kiosk_communication', label: 'Kiosk Comms', category: 'Host' },
   { id: '18_meeting_status', label: 'Meeting Status Controls', category: 'Host' }
 ];

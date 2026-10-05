@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UserPlus, Camera, ScanLine, Printer, AlertTriangle, CheckCircle2, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { UserPlus, Camera, ScanLine, Printer, AlertTriangle, CheckCircle2, AlertCircle, RefreshCw, Layers, User, Mail, Phone, Building } from 'lucide-react';
 import { generateBadgePDF } from '@/lib/badgeGenerator';
 import HostFollowup from './HostFollowup';
 
@@ -194,21 +194,21 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
       {activeTab === 'checkin' && (
         <div className="space-y-6">
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card border border-border p-6 rounded-3xl shadow-sm gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card border border-border p-6 rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] gap-4">
              <div>
                <h2 className="text-lg font-bold text-foreground tracking-tight">Walk-in Registration</h2>
                <p className="text-sm text-muted-foreground mt-1">Register a new visitor manually and print their badge.</p>
              </div>
              <button 
                onClick={() => { setShowRegistrationModal(true); setStep(1); }} 
-               className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-sm flex items-center gap-2 whitespace-nowrap"
+               className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-2 whitespace-nowrap"
              >
                <UserPlus size={18} /> New Registration
              </button>
           </div>
 
           {/* Recent Badges Section */}
-          <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
             <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/30">
               <h3 className="font-bold text-foreground flex items-center gap-2">
                 <Layers size={18} className="text-primary" /> Recent Print Jobs & Reprints
@@ -251,7 +251,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                         <button 
                           onClick={() => rePrint(badge.id)}
                           disabled={badge.status === 'printing'}
-                          className="p-2.5 bg-card border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-colors disabled:opacity-50 shadow-sm"
+                          className="p-2.5 bg-card border border-border hover:bg-muted text-muted-foreground hover:text-foreground rounded-xl transition-colors disabled:opacity-50 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                           title="Re-Print Badge"
                         >
                           <Printer size={16} />
@@ -269,7 +269,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
       {/* Registration Modal */}
       {showRegistrationModal && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-card border border-border shadow-xl rounded-3xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200">
+          <div className="bg-card border border-border shadow-xl rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-200">
              
              {/* Modal Header */}
              <div className="flex justify-between items-center p-6 border-b border-border bg-muted/10 shrink-0">
@@ -291,40 +291,57 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                    {/* Left Side (Form Steps) */}
                    <div className="lg:col-span-2">
                      <div className="flex items-center gap-2 mb-8 border-b border-border/50 pb-6">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'}`}>1</div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 1 ? 'bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'bg-muted text-muted-foreground'}`}>1</div>
                         <div className={`h-1 w-12 rounded-full transition-colors ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'}`}>2</div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 2 ? 'bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'bg-muted text-muted-foreground'}`}>2</div>
                         <div className={`h-1 w-12 rounded-full transition-colors ${step >= 3 ? 'bg-primary' : 'bg-muted'}`}></div>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 3 ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground'}`}>3</div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${step >= 3 ? 'bg-primary text-primary-foreground shadow-[0_4px_12px_rgba(0,0,0,0.03)]' : 'bg-muted text-muted-foreground'}`}>3</div>
                      </div>
 
                      {step === 1 && (
                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                         <h2 className="text-lg font-bold text-foreground">Visitor Information</h2>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                           <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-foreground/90 mb-1.5">Full Name</label>
-                              <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 bg-card border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" />
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold text-foreground/90 mb-1.5">Email (Optional)</label>
-                              <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 bg-card border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" />
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold text-foreground/90 mb-1.5">Phone (Optional)</label>
-                              <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 bg-card border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" />
-                           </div>
-                           <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-foreground/90 mb-1.5">Company / Purpose</label>
-                              <input type="text" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full px-4 py-3 bg-card border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" />
-                           </div>
-                           <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-foreground/90 mb-1.5">Host Searching For</label>
-                              <input type="text" value={formData.hostName} onChange={e => setFormData({...formData, hostName: e.target.value})} placeholder="Search employee directory..." className="w-full px-4 py-3 bg-card border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm" />
+                         <div className="space-y-4">
+                           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider mb-4 pb-2 border-b border-border/50">Visitor Information</h3>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                             <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-foreground/90 mb-1">Full Name</label>
+                                <div className="relative">
+                                  <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
+                                  <input type="text" placeholder="John Doe" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-muted/30 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all" />
+                                </div>
+                             </div>
+                             <div>
+                                <label className="block text-xs font-bold text-foreground/90 mb-1">Email (Optional)</label>
+                                <div className="relative">
+                                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
+                                  <input type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-muted/30 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all" />
+                                </div>
+                             </div>
+                             <div>
+                                <label className="block text-xs font-bold text-foreground/90 mb-1">Phone (Optional)</label>
+                                <div className="relative">
+                                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
+                                  <input type="text" placeholder="+1 (555) 000-0000" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-muted/30 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all" />
+                                </div>
+                             </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-foreground/90 mb-1">Company / Purpose</label>
+                                <div className="relative">
+                                  <Building size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
+                                  <input type="text" placeholder="Acme Corp - Meeting" value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-muted/30 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all" />
+                                </div>
+                             </div>
+                             <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-foreground/90 mb-1">Host Searching For</label>
+                                <div className="relative">
+                                  <UserPlus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
+                                  <input type="text" placeholder="Search employee directory..." value={formData.hostName} onChange={e => setFormData({...formData, hostName: e.target.value})} className="w-full pl-9 pr-3 py-2.5 bg-muted/30 border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all" />
+                                </div>
+                             </div>
                            </div>
                          </div>
                          <div className="flex justify-end pt-6 border-t border-border/50">
-                           <button onClick={() => setStep(2)} className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-md">
+                           <button onClick={() => setStep(2)} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                              Next: Verification
                            </button>
                          </div>
@@ -337,15 +354,15 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                          <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-2xl bg-muted/10">
                             <ScanLine size={48} className="text-muted-foreground/50 mb-4" />
                             <p className="text-sm font-semibold text-muted-foreground mb-6">Scan physical ID or enter details manually</p>
-                            <button onClick={handleScanID} disabled={isScanning} className="px-6 py-3 bg-card border border-border text-foreground/90 rounded-xl text-sm font-bold shadow-sm hover:bg-muted/50 transition-colors">
+                            <button onClick={handleScanID} disabled={isScanning} className="px-6 py-3 bg-card border border-border text-foreground/90 rounded-xl text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-muted/50 transition-colors">
                               {isScanning ? 'Scanning...' : "Scan Driver's License"}
                             </button>
                          </div>
                          <div className="flex justify-between pt-6 border-t border-border/50">
-                           <button onClick={() => setStep(1)} className="px-8 py-3 bg-muted text-muted-foreground rounded-xl font-bold text-sm hover:bg-muted/80 transition-colors shadow-sm">
+                           <button onClick={() => setStep(1)} className="px-8 py-3 bg-muted text-muted-foreground rounded-xl font-bold text-sm hover:bg-muted/80 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                              Back
                            </button>
-                           <button onClick={handleCheckIn} disabled={isCheckingIn} className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-md">
+                           <button onClick={handleCheckIn} disabled={isCheckingIn} className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity shadow-[0_4px_12px_rgba(0,0,0,0.03)]">
                              {isCheckingIn ? 'Processing...' : 'Complete & Print Badge'}
                            </button>
                          </div>
@@ -369,7 +386,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                                 setCapturedPhoto(null); 
                                 setShowRegistrationModal(false);
                               }} 
-                              className="px-8 py-3 bg-card border border-border text-foreground/90 rounded-xl font-bold text-sm hover:bg-muted/50 shadow-sm transition-colors"
+                              className="px-8 py-3 bg-card border border-border text-foreground/90 rounded-xl font-bold text-sm hover:bg-muted/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors"
                             >
                               Close
                             </button>
@@ -389,7 +406,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                        </p>
                      </div>
 
-                     <div className="bg-card border border-border p-4 rounded-xl shadow-sm">
+                     <div className="bg-card border border-border p-4 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                        <h3 className="font-bold text-foreground text-xs mb-3 flex items-center gap-2">
                          <Camera size={14} className="text-muted-foreground" /> Web Camera
                        </h3>
@@ -407,14 +424,14 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                        {!capturedPhoto ? (
                          <button 
                            onClick={isCameraActive ? capturePhoto : startCamera} 
-                           className={`w-full mt-3 py-2.5 rounded-lg text-xs font-bold transition-all shadow-sm ${isCameraActive ? 'bg-primary text-primary-foreground hover:opacity-90' : 'bg-muted border border-border hover:bg-muted/80 text-foreground'}`}
+                           className={`w-full mt-3 py-2.5 rounded-lg text-xs font-bold transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${isCameraActive ? 'bg-primary text-primary-foreground hover:opacity-90' : 'bg-muted border border-border hover:bg-muted/80 text-foreground'}`}
                          >
                            {isCameraActive ? 'Snap Photo' : 'Start Camera'}
                          </button>
                        ) : (
                          <button 
                            onClick={() => { setCapturedPhoto(null); startCamera(); }} 
-                           className="w-full mt-3 py-2.5 bg-card border border-border hover:bg-muted text-foreground rounded-lg text-xs font-bold transition-colors shadow-sm"
+                           className="w-full mt-3 py-2.5 bg-card border border-border hover:bg-muted text-foreground rounded-lg text-xs font-bold transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                          >
                            Retake Photo
                          </button>

@@ -107,7 +107,7 @@ export default function KioskCommunication({ currentUser, isPanel = false }: Kio
       <div className={`flex-1 bg-card border border-border overflow-hidden flex flex-col ${isPanel ? 'border-none rounded-none' : 'rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] lg:flex-row'}`}>
         
         {/* Active Visitors List (Left Sidebar) */}
-        <div className={`w-full border-b border-border bg-muted/30 flex flex-col ${isPanel ? 'shrink-0 h-48 overflow-y-auto' : 'lg:w-1/3 lg:border-b-0 lg:border-r'}`}>
+        <div className={`w-full border-b border-border bg-muted/30 flex flex-col ${isPanel ? 'shrink-0 h-[35vh] min-h-[250px] overflow-y-auto' : 'lg:w-1/3 lg:border-b-0 lg:border-r'}`}>
            <div className="p-4 border-b border-border bg-card">
              <h3 className="font-bold text-foreground text-sm">Active Visitors</h3>
            </div>

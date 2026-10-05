@@ -54,7 +54,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
         
         {/* Full Width for Logs */}
         <div className="col-span-12">
-           <div className="bg-card border border-border rounded-3xl shadow-sm overflow-hidden h-[calc(100vh-12rem)] flex flex-col">
+           <div className="bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden h-[calc(100vh-12rem)] flex flex-col">
               <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-muted/30">
                 <h3 className="font-bold text-foreground flex items-center gap-2 tracking-tight">
                   <Activity size={18} className="text-primary" />
@@ -66,7 +66,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                      <input 
                        type="text" 
                        placeholder="Search logs..." 
-                       className="pl-9 pr-4 py-2 border border-border rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-64 transition-all shadow-sm"
+                       className="pl-9 pr-4 py-2 border border-border rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-64 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                      />
                    </div>
                 </div>
@@ -82,17 +82,17 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                    <div key={i} className="flex items-center justify-between p-5 hover:bg-muted/50 transition-colors cursor-pointer group">
                      <div className="flex items-center gap-4">
                        {log.type === 'success' && (
-                         <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm shrink-0">
+                         <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0">
                            <CheckCircle2 size={18} />
                          </div>
                        )}
                        {log.type === 'info' && (
-                         <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 border border-blue-500/20 shadow-sm shrink-0">
+                         <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-primary dark:text-blue-400 border border-blue-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0">
                            <Info size={18} />
                          </div>
                        )}
                        {log.type === 'warning' && (
-                         <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-500 border border-amber-500/20 shadow-sm shrink-0">
+                         <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-500 border border-amber-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)] shrink-0">
                            <AlertTriangle size={18} />
                          </div>
                        )}

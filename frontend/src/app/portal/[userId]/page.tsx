@@ -6,7 +6,7 @@ import {
   Users, Calendar as CalendarIcon, Clock, Shield, Settings, 
   LogOut, Building, UserCheck, Lock, Activity,
   AlertCircle, FileText, Smartphone, Monitor, BadgeCheck, Bell, MessageSquare,
-  Sun, Moon, X
+  Sun, Moon, X, BellRing
 } from 'lucide-react';
 
 import GlobalLobbyView from '@/components/portal/GlobalLobbyView';
@@ -23,7 +23,7 @@ import KioskCustomization from '@/components/portal/KioskCustomization';
 import ManageDirectory from '@/components/portal/ManageDirectory';
 import ComplianceReports from '@/components/portal/ComplianceReports';
 import ManageAvailability from '@/components/portal/ManageAvailability';
-import ArrivalAlerts from '@/components/portal/ArrivalAlerts';
+import ReassignGuests from '@/components/portal/ReassignGuests';
 import KioskCommunication from '@/components/portal/KioskCommunication';
 import SecuritySettings from '@/components/portal/SecuritySettings';
 import NotificationFeed from '@/components/portal/NotificationFeed';
@@ -42,7 +42,100 @@ export default function UnifiedPortal() {
   const [activeTab, setActiveTab] = useState<string>('');
   const [sidePanel, setSidePanel] = useState<'notifications' | 'messages' | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [toasts, setToasts] = useState<{id: string, title: string, message: string}[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const initialFetchDone = useRef(false);
+
+  // Request Notification permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Poll for new appointments to trigger Chrome Notifications
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const token = sessionStorage.getItem('access_token');
+    if (!token) return;
+
+    const pollAppointments = async () => {
+      try {
+        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments`;
+        // If not global lobby view, filter to just this user's appointments
+        if (!currentUser.permissions?.includes('7_global_lobby_view') && currentUser.numeric_host_id) {
+           url += `?host_id=${currentUser.numeric_host_id}`;
+        }
+        
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store'
+        });
+        
+        if (res.ok) {
+          const raw = await res.json();
+          const apts = raw.data || [];
+          
+          if (!initialFetchDone.current) {
+             seenIdsRef.current = new Set(apts.map((a: any) => `${a.id}-${a.status}`));
+             initialFetchDone.current = true;
+          } else {
+             const newApts = apts.filter((a: any) => {
+               if (seenIdsRef.current.has(`${a.id}-${a.status}`)) return false;
+               return a.status === 'CHECKED_IN' || a.status === 'EXPECTED';
+             });
+
+             if (newApts.length > 0) {
+               newApts.forEach((a: any) => seenIdsRef.current.add(`${a.id}-${a.status}`));
+               
+               const newToasts = newApts.map((apt: any) => {
+                 const title = apt.status === 'CHECKED_IN' ? 'Guest Arrived' : 'New Guest Booking';
+                 const hostName = apt.host?.full_name || 'you';
+                 const guestName = apt.visitor?.full_name || 'A guest';
+                 const actionWord = apt.status === 'CHECKED_IN' ? 'arrived for their' : 'booked a';
+                 const msg = `${guestName} has ${actionWord} appointment with ${hostName}.`;
+                 return { id: Math.random().toString(), title, message: msg };
+               });
+               
+               setToasts(prev => [...prev, ...newToasts]);
+               
+               setTimeout(() => {
+                 setToasts(prev => prev.filter(t => !newToasts.find(nt => nt.id === t.id)));
+               }, 6000);
+
+               if (typeof window !== 'undefined' && 'Notification' in window) {
+                 if (Notification.permission === 'granted') {
+                   const muteSounds = currentUser.preferences?.notifications?.mute_sounds;
+                   
+                   newToasts.forEach((t: any) => {
+                     try {
+                       new Notification(t.title, { body: t.message, silent: Boolean(muteSounds), icon: '/favicon.ico' });
+                     } catch (err) {
+                       console.error("Browser notification failed:", err);
+                     }
+                   });
+                 } else {
+                   console.log("Desktop notification skipped. Permission is:", Notification.permission);
+                 }
+               }
+             }
+
+             // Also make sure we add ALL new statuses to seenIdsRef so they don't trigger later
+             apts.forEach((a: any) => seenIdsRef.current.add(`${a.id}-${a.status}`));
+          }
+        }
+      } catch (err) {
+        console.error("Notification poll error", err);
+      }
+    };
+
+    pollAppointments();
+    const intervalId = setInterval(pollAppointments, 10000); // Check every 10 seconds
+    return () => clearInterval(intervalId);
+  }, [currentUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -74,6 +167,11 @@ export default function UnifiedPortal() {
           setCurrentUser(meData);
           setPermissions(meData.permissions || []);
           
+          if (meData.role) {
+            const roleFormatted = meData.role.replace('_', ' ').toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
+            document.title = `${roleFormatted} Portal | Smart Front Desk`;
+          }
+          
           if (meData.preferences?.theme) {
             setTheme(meData.preferences.theme);
           }
@@ -101,7 +199,37 @@ export default function UnifiedPortal() {
     };
 
     fetchProfile();
-  }, [setTheme]);
+  }, []); // Remove setTheme from dependency array so it doesn't re-run and overwrite the theme
+
+  const updateThemePreference = async (newTheme: string) => {
+    setTheme(newTheme);
+    const token = sessionStorage.getItem('access_token');
+    if (!token || !currentUser) return;
+    
+    try {
+      const payload = {
+        preferences: {
+          ...currentUser.preferences,
+          theme: newTheme
+        }
+      };
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/auth/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        setCurrentUser({...currentUser, preferences: payload.preferences});
+      }
+    } catch (err) {
+      console.error('Failed to save theme to backend', err);
+    }
+  };
 
   const handleSignOut = () => {
     sessionStorage.removeItem('access_token');
@@ -141,6 +269,7 @@ export default function UnifiedPortal() {
   const flattenedNavItems = [
     { key: '1_central_ops', label: 'Central Operations', icon: <Activity size={16} /> },
     { key: '8_manual_override', label: 'Manual Check-in', icon: <UserCheck size={16} /> },
+    { key: '21_reassign_guests', label: 'Reassign Guests', icon: <BellRing size={16} /> },
     { key: '13_personal_queue', label: 'Personal Queue', icon: <Users size={16} /> },
     { key: '5_compliance_reports', label: 'Compliance & Reports', icon: <FileText size={16} /> }
   ].filter(item => {
@@ -166,7 +295,7 @@ export default function UnifiedPortal() {
       case '20_kiosk_customization': return <KioskCustomization currentUser={currentUser} />;
       case '13_personal_queue': return <PersonalQueue currentUser={currentUser} />;
       case '15_manage_availability': return <ManageAvailability currentUser={currentUser} />;
-      case '16_arrival_alerts': return <ArrivalAlerts currentUser={currentUser} />;
+      case '21_reassign_guests': return <ReassignGuests currentUser={currentUser} />;
       case '17_kiosk_communication': return <KioskCommunication currentUser={currentUser} />;
       case '19_notification_feed': return <NotificationFeed currentUser={currentUser} />;
       case 'settings': return <SecuritySettings currentUser={currentUser} />;
@@ -268,13 +397,13 @@ export default function UnifiedPortal() {
                 {/* Theme Toggle */}
                 <div className="p-2 border-b border-border/50">
                   <div className="flex items-center bg-muted/50 p-1 rounded-xl">
-                    <button onClick={() => setTheme('light')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="Light Mode">
+                    <button onClick={() => updateThemePreference('light')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="Light Mode">
                       <Sun size={14} />
                     </button>
-                    <button onClick={() => setTheme('dark')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'dark' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="Dark Mode">
+                    <button onClick={() => updateThemePreference('dark')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'dark' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="Dark Mode">
                       <Moon size={14} />
                     </button>
-                    <button onClick={() => setTheme('system')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'system' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="System Match">
+                    <button onClick={() => updateThemePreference('system')} className={`flex-1 flex justify-center py-1.5 rounded-lg transition-all ${theme === 'system' ? 'bg-card shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`} title="System Match">
                       <Monitor size={14} />
                     </button>
                   </div>
@@ -365,6 +494,22 @@ export default function UnifiedPortal() {
            </div>
         </div>
       )}
+      {/* In-App Toast Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2">
+        {toasts.map(toast => (
+          <div key={toast.id} className="bg-card border border-border shadow-lg rounded-xl p-4 w-80 animate-in slide-in-from-right-8 fade-in duration-300">
+            <div className="flex justify-between items-start mb-1">
+              <h4 className="font-bold text-foreground text-sm flex items-center gap-2">
+                <Bell size={14} className="text-primary" /> {toast.title}
+              </h4>
+              <button onClick={() => setToasts(p => p.filter(t => t.id !== toast.id))} className="text-muted-foreground hover:text-foreground">
+                <X size={14} />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">{toast.message}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

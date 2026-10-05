@@ -74,7 +74,7 @@ export default function LandingScreen({ setScreen }: LandingScreenProps) {
         <div className="flex flex-col md:flex-row gap-4 w-full max-w-3xl">
           <button
             onClick={() => setScreen('checkin')}
-            className="flex-1 min-h-[80px] bg-[#0058be] text-white rounded-xl text-xl font-semibold shadow-lg hover:bg-[#2170e4] hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 border-t border-white/20"
+            className="flex-1 min-h-[80px] bg-primary text-primary-foreground rounded-2xl text-xl font-bold shadow-lg hover:opacity-90 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 border border-primary/20"
           >
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             Check In
@@ -82,7 +82,7 @@ export default function LandingScreen({ setScreen }: LandingScreenProps) {
 
           <button
             onClick={() => setScreen('ai')}
-            className="flex-1 min-h-[80px] bg-white text-[#0b1c30] rounded-xl text-xl font-semibold shadow-lg hover:bg-[#eff4ff] hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 border border-[#c6c6cd]"
+            className="flex-1 min-h-[80px] bg-card text-foreground rounded-2xl text-xl font-bold shadow-lg hover:bg-muted/80 hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3 border border-border"
           >
             <img src="/robot.svg" alt="Robot AI Icon" className="w-7 h-7 object-contain" />
             Ask the AI

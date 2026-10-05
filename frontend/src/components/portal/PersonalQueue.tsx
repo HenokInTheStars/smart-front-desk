@@ -110,7 +110,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
   const prebookedCount = myVisitors.filter(v => v.status === 'expected' || v.status === 'scheduled').length;
 
   return (
-    <div className="bg-white min-h-[calc(100vh-80px)] -mt-6 -mx-6 p-8 relative">
+    <div className="bg-card min-h-[calc(100vh-80px)] -mt-6 -mx-6 p-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
       
       {/* Success/Action Toast (Bottom Center) */}
       {toastMsg && (
@@ -132,23 +132,23 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
 
 
       {/* Tabs and Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-slate-200 mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border mb-6 gap-4">
         <div className="flex overflow-x-auto">
           <button 
             onClick={() => setActiveTab('live')}
-          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'live' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'live' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
         >
           <Users size={18} /> Live Assigned Queue ({waitingCount + inMeetingCount})
         </button>
         <button 
           onClick={() => setActiveTab('upcoming')}
-          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'upcoming' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'upcoming' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
         >
           <Calendar size={18} /> Upcoming & Future Reservations ({prebookedCount})
         </button>
         <button 
           onClick={() => setActiveTab('completed')}
-            className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'completed' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'completed' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
           >
             <Clock size={18} /> Completed Past Visits ({completedCount})
           </button>
@@ -156,7 +156,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         <div className="pb-4 lg:pb-0">
           <button 
             onClick={() => setShowPreRegister(true)} 
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-sm hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:opacity-90 transition-opacity flex items-center gap-2"
           >
              <UserPlus size={16} /> Pre-Register Guest
           </button>
@@ -184,146 +184,168 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
 
         return (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white border border-slate-200 rounded-xl p-4 mb-6 shadow-sm">
-              <span className="text-sm font-bold text-slate-700">{displayList.length} in this view</span>
-              <div className="flex items-center gap-3 text-sm mt-3 sm:mt-0">
-                <span className="text-slate-400 font-medium">Sort queue:</span>
-                <button 
-                  onClick={() => setSortOrder('time')}
-                  className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-sm ${sortOrder === 'time' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
-                >
-                  Arrival Time ↓
-                </button>
-                <button 
-                  onClick={() => setSortOrder('name')}
-                  className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-sm ${sortOrder === 'name' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
-                >
-                  Visitor Name
-                </button>
-              </div>
-            </div>
-
-            {/* List */}
-            <div className="space-y-4 pb-20">
-              {isLoading ? (
-                <div className="p-10 flex justify-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>
-              ) : displayList.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 font-medium">No visitors in this view.</div>
-              ) : (
-                displayList.map(v => (
-                   <div 
-                     key={v.id} 
-                     className="border border-blue-100 bg-white rounded-2xl p-6 flex flex-col gap-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:border-blue-300 transition-colors cursor-pointer"
-                     onClick={() => setExpandedCardId(expandedCardId === v.id ? null : v.id)}
-                   >
+            {/* Unified Table Container */}
+            <div className="pb-20">
+              <div className="bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
                 
-                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                   {/* Left Section */}
-                   <div>
-                      <div className="flex items-center gap-4 mb-2">
-                         {v.status === 'in_meeting' && (
-                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">In Meeting</span>
-                         )}
-                         {(v.status === 'checked_in' || v.status === 'waiting') && (
-                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">Waiting in Lobby</span>
-                         )}
-                         {v.status === 'scheduled' && (
-                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-sm">Scheduled</span>
-                         )}
-                         <h3 className="text-xl font-bold font-serif text-slate-900 tracking-tight">{v.name}</h3>
-                      </div>
-                      <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
-                        Meeting <span className="w-1 h-1 rounded-full bg-slate-300" /> Arrived at {v.time}
-                      </p>
-                   </div>
-                   
-                   {/* Right Section Actions */}
-                   <div className="flex items-center gap-3 shrink-0">
-                      {activeTab === 'upcoming' ? (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setExpandedCardId(expandedCardId === v.id ? null : v.id); }}
-                          className="px-5 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-colors flex items-center gap-2"
-                        >
-                          <Phone size={16} /> Contact Info
-                        </button>
-                      ) : v.status === 'in_meeting' ? (
-                        <>
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-5 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-colors"
-                          >
-                            +15 Min
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'completed'); }}
-                            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl flex items-center gap-2 shadow-sm transition-colors"
-                          >
-                            <CheckCircle2 size={16} /> Complete Meeting
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button 
-                            onClick={(e) => handleNotifyGuest(e, v.id)}
-                            className="px-4 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors"
-                          >
-                            <MessageSquare size={16} /> Notify (5m)
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'needs_reassignment'); }}
-                            className="px-5 py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors"
-                          >
-                            <XCircle size={16} /> Not Mine
-                          </button>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if (inMeetingCount > 0) {
-                                setToastMsg('You are already in a meeting. Please complete it first.');
-                                setTimeout(() => setToastMsg(null), 3000);
-                                return;
-                              }
-                              moveStatus(v.id, 'in_meeting'); 
-                            }} 
-                            className={`px-5 py-2.5 text-white text-sm font-bold rounded-xl flex items-center gap-2 shadow-sm transition-colors ${inMeetingCount > 0 ? 'bg-slate-400 cursor-not-allowed opacity-80' : 'bg-blue-600 hover:bg-blue-700'}`}
-                            title={inMeetingCount > 0 ? "Finish your current meeting first" : ""}
-                          >
-                            <User size={16} /> Admit & Start Meeting
-                          </button>
-                        </>
-                      )}
-                   </div>
+                {/* Table Header / Sorting Controls */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border-b border-border bg-muted/30">
+                  <span className="text-sm font-bold text-foreground/90">{displayList.length} in this view</span>
+                  <div className="flex items-center gap-3 text-sm mt-3 sm:mt-0">
+                    <span className="text-muted-foreground/70 font-medium">Sort queue:</span>
+                    <button 
+                      onClick={() => setSortOrder('time')}
+                      className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${sortOrder === 'time' ? 'bg-primary hover:bg-blue-700 text-white' : 'bg-muted hover:bg-muted/80 text-muted-foreground border border-border'}`}
+                    >
+                      Arrival Time {sortOrder === 'time' && '↓'}
+                    </button>
+                    <button 
+                      onClick={() => setSortOrder('name')}
+                      className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${sortOrder === 'name' ? 'bg-primary hover:bg-blue-700 text-white' : 'bg-muted hover:bg-muted/80 text-muted-foreground border border-border'}`}
+                    >
+                      Visitor Name {sortOrder === 'name' && '↓'}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Expanded Details Section */}
-                {expandedCardId === v.id && (
-                  <div className="pt-4 mt-2 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Company / Organization</p>
-                        <p className="text-sm text-slate-800 font-medium">{v.company}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Purpose / Notes</p>
-                        <p className="text-sm text-slate-800 font-medium">{v.purpose}</p>
-                      </div>
-                    </div>
-                    {activeTab === 'upcoming' && (
-                      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-6">
-                         <div className="flex items-center gap-2 text-sm text-slate-700 font-medium">
-                           <Phone size={14} className="text-slate-400" /> {v.phone}
-                         </div>
-                         <div className="flex items-center gap-2 text-sm text-slate-700 font-medium">
-                           <Mail size={14} className="text-slate-400" /> {v.email}
-                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-             </div>
-          ))
-        )}
-      </div>
+                {/* Table Content */}
+                {isLoading ? (
+                  <div className="p-10 flex justify-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>
+                ) : displayList.length === 0 ? (
+                  <div className="p-10 text-center text-muted-foreground/70 font-medium">No visitors in this view.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[800px]">
+                      <thead>
+                      <tr className="bg-muted/30 border-b border-border text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                        <th className="p-4 pl-6 font-bold w-0 whitespace-nowrap">Status</th>
+                        <th className="p-4 font-bold">Visitor</th>
+                        <th className="p-4 font-bold w-32">Time</th>
+                        <th className="p-4 pr-6 text-right font-bold w-auto">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {displayList.map(v => (
+                        <React.Fragment key={v.id}>
+                          <tr 
+                            className="hover:bg-muted/30/50 transition-colors cursor-pointer group"
+                            onClick={() => setExpandedCardId(expandedCardId === v.id ? null : v.id)}
+                          >
+                            <td className="p-4 pl-6 align-middle w-0 whitespace-nowrap">
+                              {v.status === 'in_meeting' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-primary/10 text-blue-700 border border-blue-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Meeting</span>
+                              )}
+                              {(v.status === 'checked_in' || v.status === 'waiting') && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Waiting</span>
+                              )}
+                              {v.status === 'scheduled' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-slate-100 text-foreground/90 border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Scheduled</span>
+                              )}
+                              {v.status === 'completed' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Completed</span>
+                              )}
+                            </td>
+                            <td className="p-4 align-middle">
+                              <div className="font-bold text-foreground">{v.name}</div>
+                              <div className="text-sm text-muted-foreground truncate max-w-[200px]" title={v.company}>{v.company}</div>
+                            </td>
+                            <td className="p-4 align-middle text-sm text-muted-foreground font-medium whitespace-nowrap">
+                              {v.time}
+                            </td>
+                            <td className="p-4 pr-6 align-middle text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                {activeTab === 'upcoming' ? (
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setExpandedCardId(expandedCardId === v.id ? null : v.id); }}
+                                    className="px-2.5 py-1.5 bg-card border border-border hover:bg-muted/30 text-foreground/90 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                                  >
+                                    <Phone size={12} /> Contact Info
+                                  </button>
+                                ) : v.status === 'in_meeting' ? (
+                                  <>
+                                    <button 
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="px-2.5 py-1.5 bg-card border border-border hover:bg-muted/30 text-foreground/90 text-xs font-bold rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                                    >
+                                      +15 Min
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'completed'); }}
+                                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors"
+                                    >
+                                      <CheckCircle2 size={12} /> Complete
+                                    </button>
+                                  </>
+                                ) : (v.status !== 'completed' && (
+                                  <>
+                                    <button 
+                                      onClick={(e) => handleNotifyGuest(e, v.id)}
+                                      className="px-2.5 py-1.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap"
+                                    >
+                                      <MessageSquare size={12} /> Notify (5m)
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'needs_reassignment'); }}
+                                      className="px-2.5 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap"
+                                    >
+                                      <XCircle size={12} /> Not Mine
+                                    </button>
+                                    <button 
+                                      onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        if (inMeetingCount > 0) {
+                                          setToastMsg('You are already in a meeting. Please complete it first.');
+                                          setTimeout(() => setToastMsg(null), 3000);
+                                          return;
+                                        }
+                                        moveStatus(v.id, 'in_meeting'); 
+                                      }} 
+                                      className={`px-3 py-1.5 text-white text-xs font-bold rounded-lg flex items-center gap-1 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors whitespace-nowrap ${inMeetingCount > 0 ? 'bg-slate-400 cursor-not-allowed opacity-80' : 'bg-primary hover:bg-blue-700'}`}
+                                      title={inMeetingCount > 0 ? "Finish your current meeting first" : ""}
+                                    >
+                                      <User size={12} /> Admit
+                                    </button>
+                                  </>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                          {expandedCardId === v.id && (
+                            <tr className="bg-muted/30/50">
+                              <td colSpan={4} className="p-0">
+                                <div className="px-6 py-4 border-t border-border/50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                      <p className="text-xs text-muted-foreground/70 font-bold uppercase tracking-wider mb-1">Company / Organization</p>
+                                      <p className="text-sm text-foreground font-medium">{v.company}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-muted-foreground/70 font-bold uppercase tracking-wider mb-1">Purpose / Notes</p>
+                                      <p className="text-sm text-foreground font-medium">{v.purpose}</p>
+                                    </div>
+                                  </div>
+                                  {activeTab === 'upcoming' && (
+                                    <div className="mt-4 pt-4 border-t border-border flex items-center gap-6">
+                                       <div className="flex items-center gap-2 text-sm text-foreground/90 font-medium">
+                                         <Phone size={14} className="text-muted-foreground/70" /> {v.phone}
+                                       </div>
+                                       <div className="flex items-center gap-2 text-sm text-foreground/90 font-medium">
+                                         <Mail size={14} className="text-muted-foreground/70" /> {v.email}
+                                       </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              </div>
+            </div>
       </>
       );
     })()}

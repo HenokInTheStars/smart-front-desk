@@ -138,7 +138,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
 
       {/* KPI Cards (12 Grid) */}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Users size={64} />
           </div>
@@ -149,7 +149,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <CheckCircle2 size={64} />
           </div>
@@ -160,8 +160,8 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
-           <p className="text-sm font-semibold text-slate-400 mb-1">Expected Today</p>
+        <div className="col-span-12 md:col-span-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
+           <p className="text-sm font-semibold text-muted-foreground/70 mb-1">Expected Today</p>
            <div className="flex items-end gap-2">
             <h3 className="text-4xl font-black text-white">{expectedVisitors.length}</h3>
             <span className="text-xs font-medium text-slate-300 mb-1">Scheduled</span>
@@ -180,7 +180,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
                <h3 className="text-sm text-slate-200 uppercase tracking-widest font-bold">Live Security & Visitor Stream</h3>
              </div>
              <div className="flex items-center gap-4">
-               <span className="text-xs text-slate-500 flex items-center gap-1"><Clock size={12} /> Real-time Feed</span>
+               <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Real-time Feed</span>
              </div>
           </div>
 
@@ -193,7 +193,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
                   isActive ? 'bg-emerald-950/20 border-emerald-900/30 hover:border-emerald-700/50' : 'bg-slate-800/20 border-slate-800 hover:border-slate-700'
                 }`}>
                   <div className={`mt-0.5 shrink-0 p-2 rounded-lg ${
-                    isActive ? 'bg-emerald-900/40 text-emerald-500' : 'bg-slate-800 text-slate-400'
+                    isActive ? 'bg-emerald-900/40 text-emerald-500' : 'bg-slate-800 text-muted-foreground/70'
                   }`}>
                     {getLogIcon(log.type)}
                   </div>
@@ -212,9 +212,9 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
                            </span>
                         )}
                       </div>
-                      <span className="text-xs text-slate-500 font-medium">{log.time}</span>
+                      <span className="text-xs text-muted-foreground font-medium">{log.time}</span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    <p className="text-xs text-muted-foreground/70 mt-1.5 leading-relaxed">
                       Visitor: <span className="text-slate-200 font-bold">{log.visitor}</span><br/>
                       Host Escort: <span className="text-slate-300">{log.host}</span>
                     </p>
@@ -225,13 +225,13 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
             
             {logs.length === 0 && !isLoading && (
                <div className="text-center py-12">
-                 <Activity size={32} className="mx-auto text-slate-700 mb-3" />
-                 <p className="text-slate-500 text-sm">No activity recorded yet today.</p>
+                 <Activity size={32} className="mx-auto text-foreground/90 mb-3" />
+                 <p className="text-muted-foreground text-sm">No activity recorded yet today.</p>
                </div>
             )}
             
             <div className="text-center py-4">
-               <div className="inline-block px-4 py-1.5 rounded-full border border-slate-800 bg-slate-800/50 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+               <div className="inline-block px-4 py-1.5 rounded-full border border-slate-800 bg-slate-800/50 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                  Listening for new events...
                </div>
             </div>
@@ -239,7 +239,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
         </div>
 
         {/* Right Col: Upcoming Reservations (4 / 12 columns) */}
-        <div className="col-span-12 xl:col-span-4 bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+        <div className="col-span-12 xl:col-span-4 bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col h-[600px]">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/50">
             <h3 className="font-bold text-foreground flex items-center gap-2">
               <Clock size={16} className="text-muted-foreground" /> Upcoming Reservations
