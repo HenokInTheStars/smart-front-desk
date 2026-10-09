@@ -3,15 +3,17 @@
 import React from 'react';
 import { 
   Activity, Server, Shield, 
-  CheckCircle2, Info, AlertTriangle, ChevronRight, 
+  CheckCircle2, Info, AlertTriangle, ChevronRight, ChevronLeft, 
   Search, Calendar, Users, 
   ShieldCheck, ArrowUpRight, Cpu
 } from 'lucide-react';
 import GlobalLobbyView from './GlobalLobbyView';
+import { TablePagination } from '../ui/TablePagination';
 
 interface CentralOpsProps {
   currentUser: any;
 }
+
 
 export default function CentralOps({ currentUser }: CentralOpsProps) {
   const [health, setHealth] = React.useState<any>(null);
@@ -21,6 +23,10 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
   const [loadingActivity, setLoadingActivity] = React.useState<Record<string, boolean>>({});
   const [userTimelineTab, setUserTimelineTab] = React.useState<'appointments' | 'system'>('appointments');
   const [mainTab, setMainTab] = React.useState<'lobby' | 'host_audits' | 'infra_logs'>('lobby');
+  const [mainPageSize, setMainPageSize] = React.useState(10);
+  const [mainCurrentPage, setMainCurrentPage] = React.useState(1);
+  const [activityPageSize, setActivityPageSize] = React.useState(5);
+  const [activityCurrentPage, setActivityCurrentPage] = React.useState(1);
 
   const handleExpand = async (logId: string, userId: string | null) => {
     if (expandedLogId === logId) {
@@ -49,6 +55,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
   };
 
   React.useEffect(() => {
+    setMainCurrentPage(1);
     const fetchHealth = async () => {
       try {
         const token = sessionStorage.getItem('access_token');
@@ -198,7 +205,12 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                       </div>
                     )}
                     
-                    {logs.filter(l => mainTab === 'host_audits' ? l.user_id : !l.user_id).length > 0 && (
+                    {(() => {
+                      const filteredLogs = logs.filter(l => mainTab === 'host_audits' ? l.user_id : !l.user_id);
+                      if (filteredLogs.length === 0) return null;
+                      const paginatedLogs = filteredLogs.slice((mainCurrentPage - 1) * mainPageSize, mainCurrentPage * mainPageSize);
+                      return (
+                        <div className="flex flex-col">
                       <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead className="bg-muted/10 sticky top-0 z-10 backdrop-blur-md">
                           <tr className="border-b border-border/40">
@@ -210,10 +222,11 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
-                          {logs.filter(l => mainTab === 'host_audits' ? l.user_id : !l.user_id).map((log: any, i: number) => {
+                          {paginatedLogs.map((log: any, i: number) => {
+                            const globalIndex = (mainCurrentPage - 1) * mainPageSize + i + 1;
                             let safeTimeStr = log.time;
                             if (log.time) {
-                              const hasOffset = log.time.endsWith('Z') || new RegExp('[+-]\\\\d{2}:\\\\d{2}$').test(log.time);
+                              const hasOffset = log.time.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(log.time);
                               safeTimeStr = hasOffset ? log.time : log.time + 'Z';
                             }
                             const d = new Date(safeTimeStr);
@@ -225,7 +238,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                   onClick={() => handleExpand(log.id, log.user_id)}
                                   className="hover:bg-muted/30 transition-colors cursor-pointer group"
                                 >
-                                  <td className="py-4 px-8 text-[13px] text-muted-foreground/60">{i + 1}</td>
+                                  <td className="py-4 px-8 text-[13px] text-muted-foreground/60">{globalIndex}</td>
                                   <td className="py-4 px-6 text-[13px] text-foreground font-medium">{log.detail || log.title}</td>
                                   <td className="py-4 px-6 text-[13px] text-muted-foreground">{timeStr}</td>
                                   <td className="py-4 px-6 text-[13px] text-muted-foreground">{log.meta}</td>
@@ -276,6 +289,14 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                             </div>
                                             
                                             <div className="w-full overflow-x-auto">
+                                              {(() => {
+                                                const filteredActs = userActivities[log.user_id].filter((act: any) => {
+                                                  const isApt = ['Appointment Booked', 'Admitted Guest', 'Completed Meeting'].includes(act.action);
+                                                  return userTimelineTab === 'appointments' ? isApt : !isApt;
+                                                });
+                                                const paginatedActs = filteredActs.slice((activityCurrentPage - 1) * activityPageSize, activityCurrentPage * activityPageSize);
+                                                return (
+                                                  <div className="flex flex-col border border-border/40 rounded-xl overflow-hidden mt-2">
                                               <table className="w-full text-left border-collapse whitespace-nowrap">
                                                 <thead>
                                                   <tr>
@@ -285,15 +306,10 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                                   </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-border/20">
-                                                  {userActivities[log.user_id]
-                                                    .filter((act: any) => {
-                                                      const isApt = ['Appointment Booked', 'Admitted Guest', 'Completed Meeting'].includes(act.action);
-                                                      return userTimelineTab === 'appointments' ? isApt : !isApt;
-                                                    })
-                                                    .map((act: any, idx: number) => {
+                                                  {paginatedActs.map((act: any, idx: number) => {
                                                       let sTimeStr = act.time;
                                                       if (act.time) {
-                                                        const hOff = act.time.endsWith('Z') || new RegExp('[+-]\\\\d{2}:\\\\d{2}$').test(act.time);
+                                                        const hOff = act.time.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(act.time);
                                                         sTimeStr = hOff ? act.time : act.time + 'Z';
                                                       }
                                                       const ad = new Date(sTimeStr);
@@ -307,10 +323,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                                         </tr>
                                                       );
                                                   })}
-                                                  {userActivities[log.user_id].filter((act: any) => {
-                                                      const isApt = ['Appointment Booked', 'Admitted Guest', 'Completed Meeting'].includes(act.action);
-                                                      return userTimelineTab === 'appointments' ? isApt : !isApt;
-                                                  }).length === 0 && (
+                                                  {filteredActs.length === 0 && (
                                                     <tr>
                                                       <td colSpan={3} className="py-6 text-center text-xs text-muted-foreground italic">
                                                         No records found in this category.
@@ -319,6 +332,12 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                                   )}
                                                 </tbody>
                                               </table>
+                                              {filteredActs.length > 0 && (
+                                                <TablePagination totalItems={filteredActs.length} pageSize={activityPageSize} setPageSize={setActivityPageSize} currentPage={activityCurrentPage} setCurrentPage={setActivityCurrentPage} />
+                                              )}
+                                              </div>
+                                              );
+                                              })()}
                                             </div>
                                           </div>
                                         ) : (
@@ -333,7 +352,10 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                           })}
                         </tbody>
                       </table>
-                    )}
+                      <TablePagination totalItems={filteredLogs.length} pageSize={mainPageSize} setPageSize={setMainPageSize} currentPage={mainCurrentPage} setCurrentPage={setMainCurrentPage} />
+                      </div>
+                      );
+                    })()}
                  </div>
                </div>
              )}

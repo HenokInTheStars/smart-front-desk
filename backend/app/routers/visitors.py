@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 from app.db.session import get_db
 from app.db.models import Visitor, Employee, Appointment
@@ -22,6 +22,25 @@ router = APIRouter(prefix="/visitors", tags=["visitors"])
 
 _NOT_IMPLEMENTED = "Not implemented yet — ships in Sprint 2"
 
+
+from datetime import timedelta
+
+@router.post("/bulk_checkout", status_code=status.HTTP_200_OK)
+async def bulk_checkout(db: AsyncSession = Depends(get_db)):
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+    res = await db.execute(
+        select(Appointment).where(
+            Appointment.status.in_(["CHECKED_IN", "IN_MEETING"]),
+            Appointment.checked_in_at < cutoff
+        )
+    )
+    appointments = res.scalars().all()
+    for appt in appointments:
+        appt.status = "COMPLETED"
+        appt.checked_out_at = datetime.now(timezone.utc)
+    
+    await db.commit()
+    return {"message": f"Auto-checked out {len(appointments)} visitors.", "count": len(appointments)}
 
 @router.get("", response_model=list[VisitorOut])
 async def list_visitors(skip: int = 0, limit: int = 50) -> list[VisitorOut]:

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Key, Bell, BellOff, Smartphone, CheckCircle2, AlertTriangle, Monitor, Save } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { ALL_PERMISSIONS } from '../../lib/permissions';
 
 interface SecuritySettingsProps {
   currentUser: any;
@@ -239,7 +240,7 @@ export default function SecuritySettings({ currentUser }: SecuritySettingsProps)
                    <CheckCircle2 size={14} className="text-emerald-500" /> Active Permissions
                  </p>
                  <div className="flex flex-wrap gap-2">
-                   {currentUser?.permissions?.map((perm: string) => (
+                   {currentUser?.permissions?.filter((p: string) => ALL_PERMISSIONS.some(ap => ap.id === p)).map((perm: string) => (
                      <span key={perm} className="px-2.5 py-1 bg-muted border border-border/80 rounded-md text-[10px] font-mono font-medium text-foreground">
                        {perm}
                      </span>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { TablePagination } from '../ui/TablePagination';
 import { Users, Search, RefreshCw, Plus, Edit2, Trash2 } from 'lucide-react';
 
 interface ManageDirectoryProps {
@@ -9,6 +10,8 @@ interface ManageDirectoryProps {
 
 export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -77,6 +80,9 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
           </div>
         </div>
         
+        {(() => {
+          const paginated = employees.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+          return (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-wider">
@@ -88,7 +94,7 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees.map(emp => (
+              {paginated.map(emp => (
                 <tr key={emp.id} className="hover:bg-muted/30 transition-colors group">
                   <td className="px-6 py-4">
                     <p className="font-bold text-foreground">{emp.name}</p>
@@ -112,7 +118,10 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
               ))}
             </tbody>
           </table>
-        </div>
+          <TablePagination totalItems={employees.length} pageSize={pageSize} setPageSize={setPageSize} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          </div>
+          );
+        })()}
       </div>
     </div>
   );

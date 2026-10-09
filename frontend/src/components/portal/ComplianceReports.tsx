@@ -3,7 +3,7 @@
 import React from 'react';
 import {
   FileText, Download, BarChart3, Clock, Calendar, Search,
-  Users, Building, UserCheck, Activity, AlertCircle, Calendar as CalendarIcon, Shield
+  Users, Building, UserCheck, Activity, AlertCircle, Calendar as CalendarIcon, Shield, X
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -145,7 +145,8 @@ function ChartCard({ title, subtitle, children, wide }: {
         <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
       </div>
       <div className="flex-1">{children}</div>
-    </div>
+
+          </div>
   );
 }
 
@@ -169,7 +170,8 @@ function SectionHeader({ label, description, timeFilter, setTimeFilter }: { labe
           <option value="year">This Year</option>
         </select>
       )}
-    </div>
+
+          </div>
   );
 }
 
@@ -184,7 +186,8 @@ function PieLegend({ data, colors }: { data: { name: string; value: number }[]; 
           <span className="font-semibold text-slate-800">{Math.round((d.value / total) * 100)}%</span>
         </div>
       ))}
-    </div>
+
+          </div>
   );
 }
 
@@ -198,7 +201,8 @@ const ChartTooltip = ({ active, payload, label, unit = '' }: any) => {
           {p.value}{unit} <span className="text-slate-400 font-normal">{p.name !== 'value' ? p.name : ''}</span>
         </p>
       ))}
-    </div>
+
+          </div>
   );
 };
 
@@ -210,6 +214,7 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
   const [isLoading, setIsLoading] = React.useState(true);
   const [isGenerating, setIsGenerating] = React.useState<string | null>(null);
   const [exports, setExports] = React.useState<any[]>([]);
+  const [pdfPreview, setPdfPreview] = React.useState<{ url: string; name: string; type: string } | null>(null);
 
   React.useEffect(() => {
     const fetchDashboard = async () => {
@@ -339,8 +344,8 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
         doc.text(`Page ${i} of ${pages} - Confidential`, 14, 290);
       }
       const fn = `${reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fn);
-      setExports(prev => [{ id: Date.now(), name: fn, date: new Date().toLocaleDateString(), type: reportName }, ...prev]);
+      const blobUrl = doc.output('bloburl');
+      setPdfPreview({ url: blobUrl.toString(), name: fn, type: reportName });
     } catch (e) {
       console.error(e);
       alert('Failed to generate report.');
@@ -725,6 +730,48 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
         </div>
       )}
 
+
+      {pdfPreview && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Preview: {pdfPreview.type}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{pdfPreview.name}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = pdfPreview.url;
+                    a.download = pdfPreview.name;
+                    a.click();
+                    setExports(prev => [{ id: Date.now(), name: pdfPreview.name, date: new Date().toLocaleDateString(), type: pdfPreview.type }, ...prev]);
+                    setPdfPreview(null);
+                  }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm"
+                >
+                  <Download size={16} />
+                  Download PDF
+                </button>
+                <button 
+                  onClick={() => setPdfPreview(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 bg-slate-100 p-4">
+              <iframe 
+                src={pdfPreview.url} 
+                className="w-full h-full rounded-xl border border-slate-200 shadow-sm bg-white"
+                title="PDF Preview"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

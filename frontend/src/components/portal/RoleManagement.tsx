@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { TablePagination } from '../ui/TablePagination';
 import { Plus, Edit2, Trash2, CheckCircle2, Shield, UserX, AlertTriangle, ShieldAlert, X, UserPlus, Search } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import AnimatedCheckbox from '../AnimatedCheckbox';
@@ -9,31 +10,14 @@ interface RoleManagementProps {
   currentUser: any;
 }
 
-const ALL_PERMISSIONS = [
-  { id: '1_central_ops', label: 'Central Ops & Command', category: 'System' },
-  { id: '2_live_stream', label: 'Live Visitor Stream', category: 'System' },
-  { id: '3_evacuation_roster', label: 'Evacuation Roster', category: 'Security' },
-  { id: '4_manage_directory', label: 'Directory Management', category: 'Admin' },
-  { id: '5_compliance_reports', label: 'Compliance & Reports', category: 'Admin' },
-  { id: '6_manage_roles', label: 'Role Management', category: 'Admin' },
-  { id: '7_global_lobby_view', label: 'Global Lobby View', category: 'Reception' },
-  { id: '8_manual_override', label: 'Manual Check-in', category: 'Reception' },
-  { id: '9_manage_badges', label: 'Badge Management', category: 'Reception' },
-  { id: '10_manage_checkout', label: 'Checkout Management', category: 'Reception' },
-  { id: '21_reassign_guests', label: 'Reassign Guests', category: 'Reception' },
-  { id: '11_monitor_watchlists', label: 'Watchlist Monitor', category: 'Security' },
-  { id: '12_host_followup', label: 'Host Follow-up', category: 'Reception' },
-  { id: '13_personal_queue', label: 'Personal Visitor Queue', category: 'Host' },
-  { id: '14_pre_register', label: 'Pre-Register Guests', category: 'Host' },
-  { id: '15_manage_availability', label: 'Schedule Management', category: 'Host' },
-  { id: '17_kiosk_communication', label: 'Kiosk Comms', category: 'Host' },
-  { id: '18_meeting_status', label: 'Meeting Status Controls', category: 'Host' }
-];
+import { ALL_PERMISSIONS } from '../../lib/permissions';
 
 const ROLES = ["SUPER_ADMIN", "ADMIN", "RECEPTION", "HOST", "OTHER"];
 
 export default function RoleManagement({ currentUser }: RoleManagementProps) {
   const [users, setUsers] = useState<any[]>([]);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -408,6 +392,9 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
             {filteredUsers.length} Users Found
           </div>
         </div>
+        {(() => {
+          const paginated = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+          return (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-muted/30 text-muted-foreground uppercase text-[10px] font-black tracking-wider">
@@ -419,7 +406,7 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredUsers.map(user => (
+              {paginated.map(user => (
                 <tr key={user.id} className="hover:bg-muted/30/50 transition-colors group">
                   <td className="px-6 py-4">
                     <p className="font-bold text-foreground">{user.email}</p>
@@ -470,7 +457,10 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
               )}
             </tbody>
           </table>
-        </div>
+          <TablePagination totalItems={filteredUsers.length} pageSize={pageSize} setPageSize={setPageSize} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          </div>
+          );
+        })()}
       </div>
     </div>
   );

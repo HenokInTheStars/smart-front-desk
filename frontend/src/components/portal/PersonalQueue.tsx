@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { TablePagination } from '../ui/TablePagination';
 import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus } from 'lucide-react';
 import PreRegisterForm from './PreRegisterForm';
 
@@ -13,11 +14,13 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'completed'>('live');
   const [sortOrder, setSortOrder] = useState<'time' | 'name'>('time');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showAlert, setShowAlert] = useState(true);
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [showPreRegister, setShowPreRegister] = useState(false);
-
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
   useEffect(() => {
     const fetchMyQueue = async () => {
       try {
@@ -175,13 +178,15 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         }
         
         displayList = [...displayList].sort((a, b) => {
+          const mod = sortDirection === 'asc' ? 1 : -1;
           if (sortOrder === 'name') {
-            return a.name.localeCompare(b.name);
+            return a.name.localeCompare(b.name) * mod;
           } else {
-            return new Date(a.rawTime).getTime() - new Date(b.rawTime).getTime();
+            return (new Date(a.rawTime).getTime() - new Date(b.rawTime).getTime()) * mod;
           }
         });
 
+        const paginatedList = displayList.slice((currentPage - 1) * pageSize, currentPage * pageSize);
         return (
           <>
             {/* Unified Table Container */}
@@ -194,16 +199,22 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                   <div className="flex items-center gap-3 text-sm mt-3 sm:mt-0">
                     <span className="text-muted-foreground/70 font-medium">Sort queue:</span>
                     <button 
-                      onClick={() => setSortOrder('time')}
+                      onClick={() => {
+                        if (sortOrder === 'time') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                        else { setSortOrder('time'); setSortDirection('asc'); }
+                      }}
                       className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${sortOrder === 'time' ? 'bg-primary hover:bg-blue-700 text-white' : 'bg-muted hover:bg-muted/80 text-muted-foreground border border-border'}`}
                     >
-                      Arrival Time {sortOrder === 'time' && '↓'}
+                      Arrival Time {sortOrder === 'time' && (sortDirection === 'asc' ? '↓' : '↑')}
                     </button>
                     <button 
-                      onClick={() => setSortOrder('name')}
+                      onClick={() => {
+                        if (sortOrder === 'name') setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+                        else { setSortOrder('name'); setSortDirection('asc'); }
+                      }}
                       className={`transition-colors px-4 py-1.5 rounded-full font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${sortOrder === 'name' ? 'bg-primary hover:bg-blue-700 text-white' : 'bg-muted hover:bg-muted/80 text-muted-foreground border border-border'}`}
                     >
-                      Visitor Name {sortOrder === 'name' && '↓'}
+                      Visitor Name {sortOrder === 'name' && (sortDirection === 'asc' ? '↓' : '↑')}
                     </button>
                   </div>
                 </div>
@@ -225,7 +236,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {displayList.map(v => (
+                      {paginatedList.map(v => (
                         <React.Fragment key={v.id}>
                           <tr 
                             className="hover:bg-muted/30/50 transition-colors cursor-pointer group"
@@ -336,6 +347,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                       ))}
                     </tbody>
                   </table>
+                    <TablePagination totalItems={displayList.length} pageSize={pageSize} setPageSize={setPageSize} currentPage={currentPage} setCurrentPage={setCurrentPage} />
                 </div>
               )}
               </div>

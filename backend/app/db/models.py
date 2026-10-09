@@ -129,6 +129,10 @@ class AuditLog(Base):
     detail = Column(String, nullable=True)
     tag = Column(String, nullable=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    host_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
+    ip_address = Column(String, nullable=True)
+    node_id = Column(String, nullable=True)
+    anomaly_flag = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     user = relationship("User")
@@ -138,4 +142,4 @@ class SystemSettings(Base):
 
     key = Column(String, primary_key=True, index=True)
     value = Column(JSONB, server_default='{}', nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

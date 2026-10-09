@@ -1,8 +1,20 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 from uuid import UUID
+import re
 
+def validate_sanitized_string(v: Optional[str]) -> Optional[str]:
+    if not v:
+        return v
+    v = v.strip()
+    if len(v) < 2:
+        raise ValueError("Must be at least 2 characters long")
+    lower_v = v.lower()
+    blocked_words = ["lorem", "ipsum", "test", "john doe", "voluptatem", "ipsa velit", "guest"]
+    if any(bw in lower_v for bw in blocked_words):
+        raise ValueError(f"Generic or placeholder names are not allowed")
+    return v
 
 class VisitorBase(BaseModel):
     full_name: str
@@ -10,10 +22,8 @@ class VisitorBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
 
-
 class VisitorCreate(VisitorBase):
     pass
-
 
 class CheckInRequest(BaseModel):
     firstName: Optional[str] = ""
@@ -23,6 +33,12 @@ class CheckInRequest(BaseModel):
     purpose: Optional[str] = None
     notes: Optional[str] = None
     hostName: Optional[str] = None
+
+    @field_validator('firstName', 'lastName', 'company', mode='before', check_fields=False)
+    @classmethod
+    def sanitize_names(cls, v: Optional[str]) -> Optional[str]:
+        return validate_sanitized_string(v)
+
 
 
 class VisitorUpdate(BaseModel):

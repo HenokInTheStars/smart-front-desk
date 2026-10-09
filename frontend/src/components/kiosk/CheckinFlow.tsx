@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import HostUnavailableModal from './HostUnavailableModal';
+import { z } from 'zod';
 import { checkinVisitor, scheduleSlot } from '@/lib/api/visitors';
 import { evaluateHostAvailability } from '@/lib/api/schedules';
 
@@ -39,18 +40,36 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
         }
     }, [formStep, scheduledBookingInfo, setScreen]);
 
+    // Zod schema for input validation
+    const checkinSchema = z.object({
+        firstName: z.string().min(2, "First name must be at least 2 characters")
+            .refine(val => {
+                const blocked = ["lorem", "ipsum", "test", "john", "doe", "guest"];
+                return !blocked.some(b => val.toLowerCase().includes(b));
+            }, "Please enter a valid real name"),
+        lastName: z.string().min(2, "Last name must be at least 2 characters")
+            .refine(val => {
+                const blocked = ["lorem", "ipsum", "test", "john", "doe", "visitor"];
+                return !blocked.some(b => val.toLowerCase().includes(b));
+            }, "Please enter a valid real name"),
+        phone: z.string().regex(/^\+251\d{9}$/, "Phone number must be in the format +251 followed by 9 digits").optional().or(z.literal(''))
+    });
+
     const handleNext = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
         if (formStep === 1) {
-            if (!formData.firstName.trim() || !formData.lastName.trim()) {
-                setFormError('Please enter both your first and last name.');
+            try {
+                checkinSchema.parse({
+                    firstName: formData.firstName.trim(),
+                    lastName: formData.lastName.trim(),
+                    phone: formData.phone.trim() || undefined
+                });
+            } catch (err: any) {
+                setFormError(err.errors[0].message);
                 return;
             }
-            if (formData.phone && !/^\+251\d{9}$/.test(formData.phone)) {
-                setFormError('Phone number must be in the format +251 followed by 9 digits (e.g. +251912345678).');
-                return;
-            }
+
             setFormError('');
             setFormStep(2);
             return;
