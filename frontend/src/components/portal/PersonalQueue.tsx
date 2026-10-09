@@ -264,12 +264,6 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                                 ) : v.status === 'in_meeting' ? (
                                   <>
                                     <button 
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="px-2.5 py-1.5 bg-card border border-border hover:bg-muted/30 text-foreground/90 text-xs font-bold rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                                    >
-                                      +15 Min
-                                    </button>
-                                    <button 
                                       onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'completed'); }}
                                       className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors"
                                     >

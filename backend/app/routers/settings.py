@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
-from app.db.models import SystemSettings
+from app.db.models import SystemSettings, AuditLog, User
+from app.core.security import get_current_user
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -24,7 +25,12 @@ async def get_setting(key: str, db: AsyncSession = Depends(get_db)):
     return {"data": None}
 
 @router.post("/{key}")
-async def update_setting(key: str, payload: SettingUpdate, db: AsyncSession = Depends(get_db)):
+async def update_setting(
+    key: str, 
+    payload: SettingUpdate, 
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     result = await db.execute(select(SystemSettings).where(SystemSettings.key == key))
     setting = result.scalars().first()
     
@@ -33,6 +39,13 @@ async def update_setting(key: str, payload: SettingUpdate, db: AsyncSession = De
     else:
         setting = SystemSettings(key=key, value=payload.value)
         db.add(setting)
+        
+    db.add(AuditLog(
+        action="Updated System Setting",
+        detail=f"Updated system setting: {key}",
+        tag="Settings",
+        user_id=current_user.id
+    ))
         
     await db.commit()
     return {"status": "success"}

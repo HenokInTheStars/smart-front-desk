@@ -47,6 +47,7 @@ export default function UnifiedPortal() {
 
   const seenIdsRef = useRef<Set<string>>(new Set());
   const initialFetchDone = useRef(false);
+  const isPollingRef = useRef(false);
 
   // Request Notification permission
   useEffect(() => {
@@ -63,6 +64,8 @@ export default function UnifiedPortal() {
     if (!token) return;
 
     const pollAppointments = async () => {
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
       try {
         let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments`;
         // If not global lobby view, filter to just this user's appointments
@@ -83,14 +86,31 @@ export default function UnifiedPortal() {
              seenIdsRef.current = new Set(apts.map((a: any) => `${a.id}-${a.status}`));
              initialFetchDone.current = true;
           } else {
+             const now = new Date().getTime();
              const newApts = apts.filter((a: any) => {
-               if (seenIdsRef.current.has(`${a.id}-${a.status}`)) return false;
-               return a.status === 'CHECKED_IN' || a.status === 'EXPECTED';
+               const key = `${a.id}-${a.status}`;
+               if (seenIdsRef.current.has(key)) return false;
+               
+               let isRecent = true;
+               if (a.status === 'CHECKED_IN' && a.checked_in_at) {
+                 const checkInTime = new Date(a.checked_in_at).getTime();
+                 if (now - checkInTime > 2 * 60 * 60 * 1000) isRecent = false;
+               } else if (a.status === 'EXPECTED' && a.scheduled_time) {
+                 const schedTime = new Date(a.scheduled_time).getTime();
+                 if (now - schedTime > 24 * 60 * 60 * 1000) isRecent = false;
+               }
+
+               if ((a.status === 'CHECKED_IN' || a.status === 'EXPECTED') && isRecent) {
+                 seenIdsRef.current.add(key); // Deduplicate immediately for any concurrent sync logic
+                 return true;
+               } else {
+                 seenIdsRef.current.add(key);
+                 return false;
+               }
              });
 
              if (newApts.length > 0) {
-               newApts.forEach((a: any) => seenIdsRef.current.add(`${a.id}-${a.status}`));
-               
+               // We no longer need to forEach add to seenIdsRef here since we do it in the filter
                const newToasts = newApts.map((apt: any) => {
                  const title = apt.status === 'CHECKED_IN' ? 'Guest Arrived' : 'New Guest Booking';
                  const hostName = apt.host?.full_name || 'you';
@@ -100,10 +120,15 @@ export default function UnifiedPortal() {
                  return { id: Math.random().toString(), title, message: msg };
                });
                
-               setToasts(prev => [...prev, ...newToasts]);
+               setToasts(prev => {
+                 // Check if a toast with this message recently exists to avoid spam
+                 const existingMessages = new Set(prev.map(t => t.message));
+                 const filteredNewToasts = newToasts.filter((t: any) => !existingMessages.has(t.message));
+                 return [...prev, ...filteredNewToasts];
+               });
                
                setTimeout(() => {
-                 setToasts(prev => prev.filter(t => !newToasts.find(nt => nt.id === t.id)));
+                 setToasts(prev => prev.filter(t => !newToasts.find((nt: any) => nt.id === t.id)));
                }, 6000);
 
                if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -129,6 +154,8 @@ export default function UnifiedPortal() {
         }
       } catch (err) {
         console.error("Notification poll error", err);
+      } finally {
+        isPollingRef.current = false;
       }
     };
 

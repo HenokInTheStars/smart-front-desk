@@ -138,33 +138,27 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
 
       {/* KPI Cards (12 Grid) */}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Users size={64} />
-          </div>
-          <p className="text-sm font-semibold text-muted-foreground mb-1">Currently in Lobby</p>
+        <div className="col-span-12 md:col-span-4 bg-card px-5 py-4 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
+          <p className="text-[13px] font-semibold text-muted-foreground mb-1.5">Currently in Lobby</p>
           <div className="flex items-end gap-2">
-            <h3 className="text-4xl font-black text-foreground">{activeVisitors.filter(v => v.status === 'waiting' || v.status === 'checked_in').length}</h3>
-            <span className="text-xs font-medium text-amber-600 mb-1">Waiting</span>
+            <h3 className="text-3xl font-black text-foreground leading-none">{activeVisitors.filter(v => v.status === 'waiting' || v.status === 'checked_in').length}</h3>
+            <span className="text-[11px] font-medium text-amber-600 mb-0.5">Waiting</span>
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-card p-5 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <CheckCircle2 size={64} />
-          </div>
-          <p className="text-sm font-semibold text-muted-foreground mb-1">In Active Meetings</p>
+        <div className="col-span-12 md:col-span-4 bg-card px-5 py-4 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
+          <p className="text-[13px] font-semibold text-muted-foreground mb-1.5">In Active Meetings</p>
           <div className="flex items-end gap-2">
-            <h3 className="text-4xl font-black text-indigo-900">{activeVisitors.filter(v => v.status === 'in_meeting').length}</h3>
-            <span className="text-xs font-medium text-primary mb-1">Checked In</span>
+            <h3 className="text-3xl font-black text-indigo-900 leading-none">{activeVisitors.filter(v => v.status === 'in_meeting').length}</h3>
+            <span className="text-[11px] font-medium text-primary mb-0.5">Checked In</span>
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
-           <p className="text-sm font-semibold text-muted-foreground/70 mb-1">Expected Today</p>
+        <div className="col-span-12 md:col-span-4 bg-card px-5 py-4 rounded-2xl border border-border shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
+           <p className="text-[13px] font-semibold text-muted-foreground mb-1.5">Expected Today</p>
            <div className="flex items-end gap-2">
-            <h3 className="text-4xl font-black text-white">{expectedVisitors.length}</h3>
-            <span className="text-xs font-medium text-slate-300 mb-1">Scheduled</span>
+            <h3 className="text-3xl font-black text-foreground leading-none">{expectedVisitors.length}</h3>
+            <span className="text-[11px] font-medium text-muted-foreground mb-0.5">Scheduled</span>
           </div>
         </div>
       </div>
@@ -173,11 +167,11 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
       <div className="grid grid-cols-12 gap-6">
         
         {/* Left Col: Unified Live Security & Visitor Stream (8 / 12 columns) */}
-        <div className="col-span-12 xl:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden font-mono flex flex-col h-[600px]">
-          <div className="bg-slate-950 px-5 py-4 flex items-center justify-between border-b border-slate-800">
+        <div className="col-span-12 xl:col-span-8 bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+          <div className="bg-muted/50 px-5 py-4 flex items-center justify-between border-b border-border">
              <div className="flex items-center gap-3">
                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-               <h3 className="text-sm text-slate-200 uppercase tracking-widest font-bold">Live Security & Visitor Stream</h3>
+               <h3 className="text-sm text-foreground uppercase tracking-widest font-bold">Live Security & Visitor Stream</h3>
              </div>
              <div className="flex items-center gap-4">
                <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Real-time Feed</span>
@@ -190,33 +184,33 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
               
               return (
                 <div key={log.id} className={`group flex items-start gap-3 p-3 rounded-xl transition-colors border ${
-                  isActive ? 'bg-emerald-950/20 border-emerald-900/30 hover:border-emerald-700/50' : 'bg-slate-800/20 border-slate-800 hover:border-slate-700'
+                  isActive ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/50 dark:border-emerald-900/30' : 'bg-muted/30 border-border/50 hover:border-border'
                 }`}>
                   <div className={`mt-0.5 shrink-0 p-2 rounded-lg ${
-                    isActive ? 'bg-emerald-900/40 text-emerald-500' : 'bg-slate-800 text-muted-foreground/70'
+                    isActive ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-500' : 'bg-muted text-muted-foreground'
                   }`}>
                     {getLogIcon(log.type)}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <p className={`text-sm font-bold ${isActive ? 'text-emerald-400' : 'text-slate-200'}`}>
+                        <p className={`text-sm font-bold ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-foreground'}`}>
                           {log.type === 'check_in' && 'Check-in Recorded'}
                           {log.type === 'check_out' && 'Check-out Recorded'}
                           {log.type === 'alert' && 'Security Alert'}
                           {log.type === 'system' && 'System Event'}
                         </p>
                         {isActive && (
-                           <span className="text-[9px] font-bold bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 uppercase tracking-widest">
+                           <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/30 uppercase tracking-widest">
                              Currently On Premise
                            </span>
                         )}
                       </div>
                       <span className="text-xs text-muted-foreground font-medium">{log.time}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground/70 mt-1.5 leading-relaxed">
-                      Visitor: <span className="text-slate-200 font-bold">{log.visitor}</span><br/>
-                      Host Escort: <span className="text-slate-300">{log.host}</span>
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                      Visitor: <span className="text-foreground font-bold">{log.visitor}</span><br/>
+                      Host Escort: <span className="text-foreground">{log.host}</span>
                     </p>
                   </div>
                 </div>
@@ -231,7 +225,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
             )}
             
             <div className="text-center py-4">
-               <div className="inline-block px-4 py-1.5 rounded-full border border-slate-800 bg-slate-800/50 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+               <div className="inline-block px-4 py-1.5 rounded-full border border-border bg-muted/50 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
                  Listening for new events...
                </div>
             </div>

@@ -153,7 +153,8 @@ async def get_audit_logs(request: Request, db: AsyncSession = Depends(get_db)):
             "detail": log.detail,
             "time": log.created_at.isoformat(),
             "meta": user_display,
-            "type": log_type
+            "type": log_type,
+            "user_id": str(log.user.id) if log.user else None
         })
         
     return StandardResponseEnvelope(
@@ -163,4 +164,70 @@ async def get_audit_logs(request: Request, db: AsyncSession = Depends(get_db)):
         message="Audit logs fetched",
         requestId=request.state.request_id,
         data=out
+    )
+
+@router.get("/user-activity/{user_id}")
+async def get_user_activity(request: Request, user_id: str, db: AsyncSession = Depends(get_db)):
+    """
+    Returns a combined chronological timeline of a user's actions.
+    This includes their explicit audit logs (e.g. login) and synthesized 
+    actions derived from their appointments if they are a host.
+    """
+    from app.db.models import AuditLog, Employee, Appointment
+    import uuid
+    
+    activity = []
+    
+    # 1. Fetch Audit Logs
+    audit_res = await db.execute(select(AuditLog).where(AuditLog.user_id == uuid.UUID(user_id)))
+    for al in audit_res.scalars().all():
+        activity.append({
+            "time": al.created_at.isoformat(),
+            "action": al.action,
+            "detail": al.detail
+        })
+        
+    # 2. Fetch Appointments (if user is a host)
+    emp_res = await db.execute(select(Employee).where(Employee.user_id == uuid.UUID(user_id)))
+    emp = emp_res.scalar_one_or_none()
+    
+    if emp:
+        apt_res = await db.execute(
+            select(Appointment)
+            .options(joinedload(Appointment.visitor))
+            .where(Appointment.host_id == emp.id)
+        )
+        for apt in apt_res.scalars().all():
+            v_name = apt.visitor.full_name if apt.visitor else "Unknown Guest"
+            
+            # Synthesize events based on timestamps
+            if apt.created_at:
+                activity.append({
+                    "time": apt.created_at.isoformat(),
+                    "action": "Appointment Booked",
+                    "detail": f"Booked meeting with {v_name}"
+                })
+            if apt.admitted_at:
+                activity.append({
+                    "time": apt.admitted_at.isoformat(),
+                    "action": "Admitted Guest",
+                    "detail": f"Admitted {v_name} into meeting"
+                })
+            if apt.checked_out_at:
+                activity.append({
+                    "time": apt.checked_out_at.isoformat(),
+                    "action": "Completed Meeting",
+                    "detail": f"Completed meeting with {v_name}"
+                })
+                
+    # Sort chronologically, newest first
+    activity.sort(key=lambda x: x["time"], reverse=True)
+    
+    return StandardResponseEnvelope(
+        internalCode="SUCCESS-200",
+        statusCode=200,
+        status="SUCCESS",
+        message="Fetched user activity",
+        requestId=getattr(request.state, "request_id", "req-none"),
+        data=activity
     )

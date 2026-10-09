@@ -150,6 +150,13 @@ async def update_preferences(
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(current_user, "preferences")
     
+    db.add(AuditLog(
+        action="Updated Preferences",
+        detail="Updated account preferences/settings",
+        tag="Profile",
+        user_id=current_user.id
+    ))
+    
     await db.commit()
     
     return StandardResponseEnvelope(data=current_user.preferences)
@@ -166,6 +173,15 @@ async def update_status(
         raise HTTPException(status_code=404, detail="Employee profile not found for current user")
     
     emp.availability_status = payload.availability_status
+    
+    status_text = {1: "Available", 2: "Busy", 3: "In Meeting"}.get(payload.availability_status, str(payload.availability_status))
+    db.add(AuditLog(
+        action="Updated Status",
+        detail=f"Changed availability status to {status_text}",
+        tag="Status",
+        user_id=current_user.id
+    ))
+    
     await db.commit()
     
     return StandardResponseEnvelope(data={"availability_status": emp.availability_status})
@@ -225,6 +241,13 @@ async def update_me(
         current_prefs.update(payload.preferences)
         current_user.preferences = current_prefs
                     
+    db.add(AuditLog(
+        action="Updated Profile",
+        detail="Updated personal profile/schedule settings",
+        tag="Profile",
+        user_id=current_user.id
+    ))
+    
     await db.commit()
     
     # Return the updated user info by calling the `me` endpoint logic again
