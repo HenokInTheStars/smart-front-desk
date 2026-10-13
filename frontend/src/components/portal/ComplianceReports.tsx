@@ -287,9 +287,9 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
       };
       const ts = {
         theme: 'striped' as const,
-        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold' as const, cellPadding: 6 },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        styles: { fontSize: 9, cellPadding: 5, textColor: [30, 41, 59], lineColor: [226, 232, 240], lineWidth: 0.1 },
+        headStyles: { fillColor: [37, 99, 235] as [number, number, number], textColor: 255, fontStyle: 'bold' as const, cellPadding: 6 },
+        alternateRowStyles: { fillColor: [248, 250, 252] as [number, number, number] },
+        styles: { fontSize: 9, cellPadding: 5, textColor: [30, 41, 59] as [number, number, number], lineColor: [226, 232, 240] as [number, number, number], lineWidth: 0.1 },
         startY: 65,
         margin: { top: 65, left: 14, right: 14, bottom: 20 },
       };
@@ -396,7 +396,7 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
                                 <ResponsiveContainer width="55%" height={H}>
                                 <RePieChart>
                                   <Pie data={visitorCategories} cx="50%" cy="50%" innerRadius={0} outerRadius={75} paddingAngle={3} dataKey="value">
-                                    {visitorCategories.map((_, i) => <Cell key={i} fill={PIE1[i % PIE1.length]} />)}
+                                    {visitorCategories.map((_: any, i: number) => <Cell key={i} fill={PIE1[i % PIE1.length]} />)}
                                   </Pie>
                                   <RechartsTooltip content={<ChartTooltip />} />
                                 </RePieChart>
@@ -438,7 +438,7 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
                                 <ResponsiveContainer width="55%" height={H}>
                                 <RePieChart>
                                   <Pie data={preregistered} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
-                                    {preregistered.map((_, i) => <Cell key={i} fill={PIE2[i]} />)}
+                                    {preregistered.map((_: any, i: number) => <Cell key={i} fill={PIE2[i]} />)}
                                   </Pie>
                                   <RechartsTooltip content={<ChartTooltip />} />
                                 </RePieChart>
@@ -510,7 +510,7 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
                                 <ResponsiveContainer width="55%" height={H}>
                                 <RePieChart>
                                   <Pie data={deptTraffic} cx="50%" cy="50%" innerRadius={0} outerRadius={75} paddingAngle={3} dataKey="value">
-                                    {deptTraffic.map((_, i) => <Cell key={i} fill={DEPT[i % DEPT.length]} />)}
+                                    {deptTraffic.map((_: any, i: number) => <Cell key={i} fill={DEPT[i % DEPT.length]} />)}
                                   </Pie>
                                   <RechartsTooltip content={<ChartTooltip />} />
                                 </RePieChart>
@@ -609,7 +609,7 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
                                 <YAxis axisLine={false} tickLine={false} tick={TICK} />
                                 <RechartsTooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
                                 <Bar dataKey="visitors" name="Visitors" radius={[4, 4, 0, 0]}>
-                                  {peakDays.map((_, i) => <Cell key={i} fill={i === 1 ? P.blue : i === 2 ? P.indigo : P.slate} />)}
+                                  {peakDays.map((_: any, i: number) => <Cell key={i} fill={i === 1 ? P.blue : i === 2 ? P.indigo : P.slate} />)}
                                   <LabelList dataKey="visitors" position="top" style={{ fontSize: 10, fill: '#64748b' }} />
                                 </Bar>
                               </BarChart>
