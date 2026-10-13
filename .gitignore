@@ -2,10 +2,26 @@
 .env
 .env.local
 
+# Virtual environment
+.venv/
+backend/.venv/
+
 # Dependencies
 node_modules/
+
+# Python bytecode & cache
 __pycache__/
 *.pyc
+
+# Local test databases & evaluation outputs
+local_db/
+backend/local_db/
+eval_output.json
+backend/tests/eval_output.json
+
+# Scratch & temporary workspace files
+scratch/
+backend/scratch/
 
 # Build output
 .next/
