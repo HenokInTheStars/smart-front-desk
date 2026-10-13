@@ -24,7 +24,8 @@ ALL_SYSTEM_PERMISSIONS = [
     {"key": "16_arrival_alerts", "label": "Real-Time Arrival Alerts", "category": "Host", "description": "Receive instant notifications upon guest arrival."},
     {"key": "17_kiosk_communication", "label": "Two-Way Kiosk Communication", "category": "Host", "description": "Send quick replies to the kiosk."},
     {"key": "18_meeting_status", "label": "Meeting Status Updates", "category": "Host", "description": "Manually progress visitor status (Waiting -> In Meeting -> Completed)."},
-    {"key": "20_kiosk_customization", "label": "Kiosk Branding & Customization", "category": "Administration", "description": "Change kiosk background images and text."}
+    {"key": "20_kiosk_customization", "label": "Kiosk Branding & Customization", "category": "Administration", "description": "Change kiosk background images and text."},
+    {"key": "22_ai_assistant", "label": "AI Executive Assistant", "category": "System", "description": "Interactive analytical AI assistant for real-time visitor insights and charts."}
 ]
 
 DEFAULT_ROLE_PERMISSIONS: Dict[str, List[str]] = {
@@ -33,11 +34,11 @@ DEFAULT_ROLE_PERMISSIONS: Dict[str, List[str]] = {
         "5_compliance_reports", "6_manage_roles", "7_global_lobby_view", "8_manual_override", 
         "9_manage_badges", "10_manage_checkout", "11_monitor_watchlists", "12_host_followup",
         "13_personal_queue", "14_pre_register", "15_manage_availability", "16_arrival_alerts",
-        "17_kiosk_communication", "18_meeting_status", "20_kiosk_customization"
+        "17_kiosk_communication", "18_meeting_status", "20_kiosk_customization", "22_ai_assistant"
     ],
     "ADMIN": [
         "1_central_ops", "2_live_stream", "3_evacuation_roster", "4_manage_directory", 
-        "5_compliance_reports", "6_manage_roles", "20_kiosk_customization"
+        "5_compliance_reports", "6_manage_roles", "20_kiosk_customization", "22_ai_assistant"
     ],
     "RECEPTION": [
         "7_global_lobby_view", "8_manual_override", "9_manage_badges", "10_manage_checkout", 

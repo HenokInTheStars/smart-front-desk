@@ -17,7 +17,13 @@ class Settings(BaseSettings):
     )
 
     database_url: str
+    database_url_readonly: str | None = None
+    assistant_ro_password: str = "assistant_ro_secret"
     openai_api_key: str | None = None
+    ai_api_key: str | None = None
+    ai_base_url: str | None = None
+    ai_model: str = "gemini-3.5-flash-lite"
+    ai_reasoning_effort: str | None = "minimal"
     jwt_secret: str
     access_token_minutes: int = 15
     refresh_token_days: int = 7
@@ -35,6 +41,13 @@ class Settings(BaseSettings):
     @property
     def resolved_database_url(self) -> str:
         url = self.database_url
+        if "@postgres:" in url and not os.path.exists("/.dockerenv"):
+            return url.replace("@postgres:5432", "@localhost:5433").replace("@postgres:", "@localhost:5433")
+        return url
+
+    @property
+    def resolved_database_url_readonly(self) -> str:
+        url = self.database_url_readonly or self.database_url
         if "@postgres:" in url and not os.path.exists("/.dockerenv"):
             return url.replace("@postgres:5432", "@localhost:5433").replace("@postgres:", "@localhost:5433")
         return url

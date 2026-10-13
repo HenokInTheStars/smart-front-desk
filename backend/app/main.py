@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.db.seed_defaults import seed_all_default_users_and_hosts
-from app.routers import appointments, auth, employees, visitors, schedules, users, dashboard, live, analytics
+from app.routers import appointments, auth, employees, visitors, schedules, users, dashboard, live, analytics, assistant
 
 settings = get_settings()
 
@@ -73,6 +73,7 @@ app.include_router(users.router)
 app.include_router(dashboard.router)
 app.include_router(analytics.router)
 app.include_router(live.router)
+app.include_router(assistant.router)
 
 from app.routers import settings as settings_router
 app.include_router(settings_router.router)
