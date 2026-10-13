@@ -6,7 +6,7 @@ import {
   Users, Calendar as CalendarIcon, Clock, Shield, Settings, 
   LogOut, Building, UserCheck, Lock, Activity,
   AlertCircle, FileText, Smartphone, Monitor, BadgeCheck, Bell, MessageSquare,
-  Sun, Moon, X, BellRing
+  Sun, Moon, X, BellRing, Bot
 } from 'lucide-react';
 
 import GlobalLobbyView from '@/components/portal/GlobalLobbyView';
@@ -27,6 +27,7 @@ import ReassignGuests from '@/components/portal/ReassignGuests';
 import KioskCommunication from '@/components/portal/KioskCommunication';
 import SecuritySettings from '@/components/portal/SecuritySettings';
 import NotificationFeed from '@/components/portal/NotificationFeed';
+import AIAssistant from '@/components/portal/AIAssistant';
 
 import { useTheme } from 'next-themes';
 
@@ -298,7 +299,8 @@ export default function UnifiedPortal() {
     { key: '8_manual_override', label: 'Manual Check-in', icon: <UserCheck size={16} /> },
     { key: '21_reassign_guests', label: 'Reassign Guests', icon: <BellRing size={16} /> },
     { key: '13_personal_queue', label: 'Personal Queue', icon: <Users size={16} /> },
-    { key: '5_compliance_reports', label: 'Compliance & Reports', icon: <FileText size={16} /> }
+    { key: '5_compliance_reports', label: 'Compliance & Reports', icon: <FileText size={16} /> },
+    { key: '22_ai_assistant', label: 'AI Executive Assistant', icon: <Bot size={16} /> }
   ].filter(item => {
     if (item.key === '1_central_ops') return hasPerm('1_central_ops') || hasPerm('7_global_lobby_view');
     return hasPerm(item.key);
@@ -325,6 +327,7 @@ export default function UnifiedPortal() {
       case '21_reassign_guests': return <ReassignGuests currentUser={currentUser} />;
       case '17_kiosk_communication': return <KioskCommunication currentUser={currentUser} />;
       case '19_notification_feed': return <NotificationFeed currentUser={currentUser} />;
+      case '22_ai_assistant': return <AIAssistant currentUser={currentUser} />;
       case 'settings': return <SecuritySettings currentUser={currentUser} />;
       
       case 'no_access': return (

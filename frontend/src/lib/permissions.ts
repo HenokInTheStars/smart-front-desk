@@ -15,5 +15,6 @@ export const ALL_PERMISSIONS = [
   { id: '14_pre_register', label: 'Pre-Register Guests', category: 'Host' },
   { id: '15_manage_availability', label: 'Schedule Management', category: 'Host' },
   { id: '17_kiosk_communication', label: 'Kiosk Comms', category: 'Host' },
-  { id: '18_meeting_status', label: 'Meeting Status Controls', category: 'Host' }
+  { id: '18_meeting_status', label: 'Meeting Status Controls', category: 'Host' },
+  { id: '22_ai_assistant', label: 'AI Executive Assistant', category: 'System' }
 ];
