@@ -21,10 +21,15 @@ def upgrade() -> None:
     op.add_column('appointments', sa.Column('checked_in_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('appointments', sa.Column('admitted_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('appointments', sa.Column('checked_out_at', sa.DateTime(timezone=True), nullable=True))
-    op.alter_column('users', 'custom_role_name',
-               existing_type=sa.TEXT(),
-               type_=sa.String(),
-               existing_nullable=True)
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    if 'custom_role_name' not in [c['name'] for c in insp.get_columns('users')]:
+        op.add_column('users', sa.Column('custom_role_name', sa.String(), nullable=True))
+    else:
+        op.alter_column('users', 'custom_role_name',
+                   existing_type=sa.TEXT(),
+                   type_=sa.String(),
+                   existing_nullable=True)
     # ### end Alembic commands ###
 
 
