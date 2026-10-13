@@ -9,7 +9,7 @@ The system tracks appointments using eight discrete lifecycle states defined in 
 4. **IN_MEETING**: The host has received the visitor in the lobby and transitioned the appointment into an active meeting session.
 5. **COMPLETED**: The appointment has concluded. The visitor has either been marked completed by the host or checked out at the front desk with badge returned.
 6. **CANCELLED**: The appointment was cancelled by the host, visitor, or administrator prior to check-in.
-7. **NEEDS_REASSIGNMENT**: The assigned host is unavailable, off shift, or on holiday when the visitor arrives. The reception staff is notified to assign an alternate host.
+7. **NEEDS_REASSIGNMENT**: The assigned host is unavailable, off shift, or on holiday when the visitor arrives. The visit appears on reception's Reassign Guests dashboard to assign an alternate host.
 8. **NO_SHOW**: The visitor failed to arrive for their scheduled appointment during the allotted time window.
 
 ## Key Operational Metrics & Definitions

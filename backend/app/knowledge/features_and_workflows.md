@@ -4,7 +4,7 @@
 Visitors can check in through two methods:
 - **Self-Service Kiosk**:
   1. The visitor enters their contact information (First Name, Last Name, Email, Phone number).
-  2. The visitor selects their host or enters their meeting purpose; if unsure, the AI Assistant recommends the appropriate employee based on department and role description.
+  2. The visitor selects their host or enters their meeting purpose; if unsure, the AI host matcher recommends the appropriate employee based on department and role description.
   3. The badge generator generates a printable visitor badge PDF formatted for standard 100mm x 62mm thermal label paper with visitor name, host name, and check-in date.
 - **Manual Reception Check-In**:
   A receptionist with permission `8_manual_override` can register a walk-in guest or check in an expected guest directly via the portal interface.
@@ -13,7 +13,7 @@ Visitors can check in through two methods:
 - **Guest Checkout**:
   When a visitor departs the building, the receptionist or host marks them checked out via `10_manage_checkout`. The record sets `checked_out_at` on the appointment.
 - **Evacuation Roster (Emergency Protocol)**:
-  In the event of an emergency evacuation, security personnel or administrators with permission `3_evacuation_roster` access the Evacuation Roster. The view provides a real-time list of visitors currently inside the facility (`status IN ('CHECKED_IN', 'IN_MEETING')`). One-click PDF export produces a physical roster sheet for emergency responders.
+  In the event of an emergency evacuation, security personnel or administrators with permission `3_evacuation_roster` access the Evacuation Roster endpoint. The view provides a real-time list of visitors currently inside the facility (`status IN ('CHECKED_IN', 'IN_MEETING')`).
 - **Emergency Lockdown**:
   When an emergency is active, the kiosk displays a full-screen emergency alert screen instructing visitors that the building is in evacuation mode and directs them to the nearest assembly point. Central operations with `1_central_ops` broadcasts the emergency state via SSE.
 
