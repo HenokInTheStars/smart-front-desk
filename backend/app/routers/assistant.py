@@ -149,7 +149,7 @@ def get_client() -> AsyncOpenAI:
     client_kwargs = {"api_key": settings.ai_api_key}
     if settings.ai_base_url:
         client_kwargs["base_url"] = settings.ai_base_url
-    return AsyncOpenAI(**client_kwargs, max_retries=0, timeout=35.0)
+    return AsyncOpenAI(**client_kwargs, max_retries=0, timeout=45.0)
 
 
 async def execute_single_tool(tc: Any, host_id: Optional[uuid.UUID], charts_collector: list) -> tuple:
@@ -534,10 +534,10 @@ async def chat_with_assistant(
             detail="AI service is temporarily experiencing high demand. Please try again in a moment."
         )
     except openai.APITimeoutError as te:
-        logger.error(f"AI Provider Timeout (35s): {te}")
+        logger.error(f"AI Provider Timeout (45s): {te}")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="AI service timed out after 35 seconds. Please try again."
+            detail="AI service timed out after 45 seconds. Please try again."
         )
 
     if not final_result:

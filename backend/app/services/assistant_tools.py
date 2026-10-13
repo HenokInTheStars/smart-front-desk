@@ -106,9 +106,13 @@ def build_filter_clauses(
                 params["f_purpose"] = f"%{v.strip()}%"
                 where_parts.append("v.purpose ILIKE :f_purpose")
             elif k == "source":
-                s_val = "walk_in" if "walk" in str(v).lower() else "pre_registered"
-                params["f_source"] = s_val
-                where_parts.append("v.source = :f_source")
+                v_str = str(v).lower()
+                if "walk" in v_str:
+                    where_parts.append("v.source IN ('WALK_IN', 'MANUAL')")
+                elif "manual" in v_str:
+                    where_parts.append("v.source = 'MANUAL'")
+                else:
+                    where_parts.append("v.source = 'PRE_REGISTERED'")
             elif k == "host_id" and not host_id:
                 params["f_host_id"] = str(v).strip()
                 where_parts.append("v.host_id = :f_host_id")
@@ -143,8 +147,8 @@ async def execute_get_visit_stats(
         query = f"""
         SELECT 
             count(*) AS total_visits,
-            count(*) FILTER (WHERE v.source = 'walk_in') AS walk_in_count,
-            count(*) FILTER (WHERE v.source = 'pre_registered') AS pre_registered_count,
+            count(*) FILTER (WHERE v.source IN ('WALK_IN', 'MANUAL')) AS walk_in_count,
+            count(*) FILTER (WHERE v.source = 'PRE_REGISTERED') AS pre_registered_count,
             count(*) FILTER (WHERE v.status = 'COMPLETED') AS completed_count,
             count(*) FILTER (WHERE v.status IN ('SCHEDULED', 'EXPECTED')) AS expected_count,
             count(*) FILTER (WHERE v.status IN ('NO_SHOW', 'CANCELLED', 'NEEDS_REASSIGNMENT') OR v.notes LIKE '%[HOST_CANCELLED]%') AS cancelled_count
@@ -581,8 +585,8 @@ async def execute_get_upcoming_appointments(
     query = f"""
     SELECT 
         count(*) AS total_upcoming,
-        count(*) FILTER (WHERE v.source = 'walk_in') AS walk_in_count,
-        count(*) FILTER (WHERE v.source = 'pre_registered') AS pre_registered_count
+        count(*) FILTER (WHERE v.source IN ('WALK_IN', 'MANUAL')) AS walk_in_count,
+        count(*) FILTER (WHERE v.source = 'PRE_REGISTERED') AS pre_registered_count
     FROM assistant_visits v
     WHERE v.scheduled_time >= :start_utc AND v.scheduled_time < :end_utc
       AND v.status IN ('SCHEDULED', 'EXPECTED') {host_clause};

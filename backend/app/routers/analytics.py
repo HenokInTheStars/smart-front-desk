@@ -53,19 +53,19 @@ async def get_analytics_dashboard(request: Request, time_filter: str = "all", db
         dept_map[dept] = dept_map.get(dept, 0) + r[1]
     dept_traffic = [{"name": k, "value": v} for k, v in dept_map.items()]
 
-    # 4. Pre-Registered vs Walk-ins (using ILIKE on email)
+    # 4. Pre-Registered vs Walk-ins (using appointment.source: WALK_IN + MANUAL = Walk-ins)
     stmt_prereg = (
         select(
-            func.sum(case((Visitor.email.ilike('walkin_%'), 1), else_=0)).label("walkins"),
-            func.sum(case((Visitor.email.notilike('walkin_%'), 1), else_=0)).label("prereg")
+            func.sum(case((Appointment.source.in_(["WALK_IN", "MANUAL"]), 1), else_=0)).label("walkins"),
+            func.sum(case((Appointment.source == "PRE_REGISTERED", 1), else_=0)).label("prereg")
         )
-        .select_from(Appointment).join(Visitor, Appointment.visitor_id == Visitor.id)
+        .select_from(Appointment)
         .where(time_cond)
     )
     res_prereg = (await db.execute(stmt_prereg)).first()
     preregistered = [
-        {"name": "Pre-registered", "value": res_prereg[1] or 0},
-        {"name": "Walk-ins", "value": res_prereg[0] or 0}
+        {"name": "Pre-registered", "value": int(res_prereg[1] or 0)},
+        {"name": "Walk-ins", "value": int(res_prereg[0] or 0)}
     ] if res_prereg and (res_prereg[0] or res_prereg[1]) else []
 
     # 5. Visitor Categories (using ILIKE on notes)

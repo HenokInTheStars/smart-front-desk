@@ -14,8 +14,8 @@ The system tracks appointments using eight discrete lifecycle states defined in 
 
 ## Key Operational Metrics & Definitions
 - **"Visitor Came" / "Arrived"**: An appointment where arrival is verified by a non-null `checked_in_at` timestamp. This includes records with status `CHECKED_IN`, `IN_MEETING`, or `COMPLETED`.
-- **"Walk-in"**: A visitor who registered on-site at reception or kiosk without advance booking. In analytics, walk-ins are identified by visitor emails starting with `walkin_` (`Visitor.email.ilike('walkin_%')`).
-- **"Pre-registered"**: A visit created in advance by a host or administrator. In analytics, pre-registered visits are identified by visitor emails not starting with `walkin_` (`Visitor.email.notilike('walkin_%')`).
+- **"Walk-in"**: A visitor who registered on-site at reception or the self-service kiosk without advance booking. Categorized by appointment source (`source IN ('WALK_IN', 'MANUAL')`).
+- **"Pre-registered"**: A visit booked in advance by a host or employee. Categorized by appointment source (`source = 'PRE_REGISTERED'`).
 - **"Visit Duration"**: The total elapsed meeting duration, calculated as `completed_at - checked_in_at` (only valid for visits where both timestamps exist).
 - **"No-Show Rate"**: Percentage of scheduled appointments where the visitor never arrived: `(NO_SHOW count / total scheduled appointments) * 100`.
 - **"Cancellation Rate"**: Percentage of scheduled appointments cancelled prior to arrival: `(CANCELLED count / total scheduled appointments) * 100`.
