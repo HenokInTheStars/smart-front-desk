@@ -85,7 +85,7 @@ class Appointment(Base):
     scheduled_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(appointment_status_enum, default="SCHEDULED", nullable=False)  # Scheduled, Checked In, Completed, Cancelled
     notes = Column(Text, nullable=True)
-    checked_in_at = Column(DateTime(timezone=True), nullable=True)
+    checked_in_at = Column(DateTime(timezone=True), nullable=True, index=True)
     admitted_at = Column(DateTime(timezone=True), nullable=True)
     checked_out_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
