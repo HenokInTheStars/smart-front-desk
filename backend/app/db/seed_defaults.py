@@ -53,7 +53,7 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
         should_close = True
 
     try:
-        # 1. Seed Core Role Users
+        # 1. Seed Core Role Users (create only if missing; never overwrite existing)
         for u_data in DEFAULT_CORE_USERS:
             res = await db.execute(select(User).where(User.email == u_data["email"]))
             user = res.scalar_one_or_none()
@@ -65,14 +65,10 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
                     is_active=True,
                 )
                 db.add(new_user)
-            else:
-                user.role = u_data["role"]
-                user.hashed_password = get_password_hash(u_data["password"])
-                user.is_active = True
 
         await db.commit()
 
-        # 2. Seed 10 Host Employees and their User Accounts
+        # 2. Seed 10 Host Employees and their User Accounts (create only if missing)
         for emp_meta in EMPLOYEE_DIRECTORY:
             emp_id = emp_meta["employee_id"]
             name_slug = emp_meta["name"].lower().replace(" ", ".")
@@ -90,11 +86,6 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
                 )
                 db.add(emp_user)
                 await db.flush()
-            else:
-                emp_user.role = "HOST"
-                emp_user.hashed_password = get_password_hash("secret")
-                emp_user.is_active = True
-                await db.flush()
 
             # Ensure Employee record exists and is linked
             e_res = await db.execute(select(Employee).where(Employee.employee_id == emp_id))
@@ -110,12 +101,74 @@ async def seed_all_default_users_and_hosts(db: AsyncSession | None = None):
                     phone="+1 (555) 010-0000",
                 )
                 db.add(emp_record)
-            else:
+            elif emp_record.user_id != emp_user.id:
                 emp_record.user_id = emp_user.id
-                emp_record.full_name = emp_meta["name"]
-                emp_record.department = dept_title
 
         await db.commit()
+    finally:
+        if should_close:
+            await db.close()
+
+
+DISALLOWED_BOOTSTRAP_PASSWORDS = {
+    "secret",
+    "changeme123",
+    "password",
+    "admin",
+    "12345678",
+    "superadmin",
+    "qwerty123456",
+}
+
+
+async def bootstrap_initial_super_admin(
+    email: str | None = None,
+    password: str | None = None,
+    db: AsyncSession | None = None
+) -> bool:
+    """
+    Safely bootstraps the first SUPER_ADMIN account from environment variables.
+    - Refuses weak, short, or well-known default passwords.
+    - Idempotent: never overwrites existing user passwords or details.
+    """
+    from app.core.config import get_settings
+    settings = get_settings()
+
+    admin_email = (email or settings.bootstrap_admin_email or "").strip().lower()
+    admin_pwd = (password or settings.bootstrap_admin_password or "").strip()
+
+    if not admin_email or not admin_pwd:
+        return False
+
+    if "@" not in admin_email:
+        raise ValueError(f"Invalid BOOTSTRAP_ADMIN_EMAIL: '{admin_email}'")
+
+    if admin_pwd.lower() in DISALLOWED_BOOTSTRAP_PASSWORDS or len(admin_pwd) < 12:
+        raise ValueError(
+            "BOOTSTRAP_ADMIN_PASSWORD rejected: must be at least 12 characters and "
+            "cannot be a well-known weak password (e.g. 'secret', 'changeme123')."
+        )
+
+    should_close = False
+    if db is None:
+        db = AsyncSessionLocal()
+        should_close = True
+
+    try:
+        res = await db.execute(select(User).where(User.email == admin_email))
+        existing = res.scalar_one_or_none()
+        if existing:
+            return False  # Already exists, never overwrite
+
+        new_admin = User(
+            email=admin_email,
+            hashed_password=get_password_hash(admin_pwd),
+            role="SUPER_ADMIN",
+            is_active=True,
+        )
+        db.add(new_admin)
+        await db.commit()
+        return True
     finally:
         if should_close:
             await db.close()

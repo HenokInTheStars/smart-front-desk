@@ -14,11 +14,24 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-ensure all standard users & host roles exist on startup
-    try:
-        await seed_all_default_users_and_hosts()
-    except Exception as e:
-        print(f"Warning: Could not auto-seed default users on startup: {e}")
+    current_settings = get_settings()
+    # 1. Production bootstrap: create initial SUPER_ADMIN if environment variables are provided
+    if current_settings.bootstrap_admin_email and current_settings.bootstrap_admin_password:
+        try:
+            from app.db.seed_defaults import bootstrap_initial_super_admin
+            created = await bootstrap_initial_super_admin()
+            if created:
+                print(f"Bootstrap admin: successfully created SUPER_ADMIN ({current_settings.bootstrap_admin_email})")
+        except Exception as e:
+            print(f"Error during production superadmin bootstrap: {e}")
+            raise e
+
+    # 2. Development-only auto-seeding (must be explicitly enabled via SEED_DEFAULT_USERS=true)
+    if current_settings.seed_default_users:
+        try:
+            await seed_all_default_users_and_hosts()
+        except Exception as e:
+            print(f"Warning: Could not auto-seed default users on startup: {e}")
     yield
 
 
