@@ -107,11 +107,13 @@ async def seed_assistant_demo_data():
             v = visitor_objects[v_idx % len(visitor_objects)]
             emp = employees[emp_idx % len(employees)]
             sch_time = make_utc_dt(yesterday, hr)
+            src = "WALK_IN" if v_idx >= 6 else "PRE_REGISTERED"
             apt = Appointment(
                 visitor_id=v.id,
                 host_id=emp.id,
                 scheduled_time=sch_time,
                 status=status,
+                source=src,
                 notes=f"Meeting with {emp.full_name}",
                 checked_in_at=sch_time,
                 admitted_at=sch_time + timedelta(minutes=5),
@@ -141,12 +143,14 @@ async def seed_assistant_demo_data():
             checked_in = sch_time if status in ["CHECKED_IN", "IN_MEETING", "COMPLETED"] else None
             admitted = (sch_time + timedelta(minutes=5)) if status in ["IN_MEETING", "COMPLETED"] else None
             checked_out = (sch_time + timedelta(minutes=50)) if status == "COMPLETED" else None
+            src = "WALK_IN" if v_idx >= 6 else "PRE_REGISTERED"
 
             apt = Appointment(
                 visitor_id=v.id,
                 host_id=emp.id,
                 scheduled_time=sch_time,
                 status=status,
+                source=src,
                 notes=f"Consultation with {emp.full_name}",
                 checked_in_at=checked_in,
                 admitted_at=admitted,

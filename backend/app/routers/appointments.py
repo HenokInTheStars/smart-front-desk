@@ -66,6 +66,7 @@ async def create_appointment(request: Request, payload: AppointmentCreate, db: A
         host_id=payload.host_id,
         scheduled_time=scheduled_dt,
         status=payload.status,
+        source="PRE_REGISTERED",
         notes=payload.notes,
     )
     db.add(new_apt)

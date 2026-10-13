@@ -18,9 +18,47 @@ from app.services.sms_service import send_sms
 from app.services.email_service import send_email
 from fastapi import BackgroundTasks
 
+from jose import jwt, JWTError
+from app.core.config import get_settings
+from app.db.models import User
+from app.schemas.user import get_effective_permissions
+
 router = APIRouter(prefix="/visitors", tags=["visitors"])
 
 _NOT_IMPLEMENTED = "Not implemented yet — ships in Sprint 2"
+
+
+async def get_checkin_source(request: Request, db: AsyncSession) -> str:
+    """Server-side resolution of check-in source:
+
+    Defaults to WALK_IN. Sets MANUAL only when request carries a valid Bearer token
+    of an active user with '8_manual_override' permission or SUPER_ADMIN role.
+    """
+    auth_header = request.headers.get("authorization") or ""
+    if not auth_header.startswith("Bearer "):
+        return "WALK_IN"
+    token = auth_header[7:].strip()
+    if not token:
+        return "WALK_IN"
+    try:
+        settings = get_settings()
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+        email: str = payload.get("sub")
+        if not email:
+            return "WALK_IN"
+        user_res = await db.execute(select(User).where(User.email == email))
+        user = user_res.scalar_one_or_none()
+        if not user or not user.is_active:
+            return "WALK_IN"
+        user_role = (user.role or "").strip().upper()
+        if user_role == "SUPER_ADMIN":
+            return "MANUAL"
+        perms = get_effective_permissions(user_role, user.permissions)
+        if "8_manual_override" in perms:
+            return "MANUAL"
+    except (JWTError, Exception):
+        return "WALK_IN"
+    return "WALK_IN"
 
 
 from datetime import timedelta
@@ -116,11 +154,13 @@ async def kiosk_checkin(request: Request, payload: CheckInRequest, background_ta
 
         # 4. Create appointment linked to the AI-assigned host
         if host:
+            assigned_source = await get_checkin_source(request, db)
             appointment = Appointment(
                 visitor_id=visitor.id,
                 host_id=host.id,
                 scheduled_time=datetime.now(timezone.utc).replace(microsecond=0),
                 status="CHECKED_IN",
+                source=assigned_source,
                 notes=f"Purpose: {payload.purpose}\nNotes: {payload.notes or ''}"
             )
             db.add(appointment)
@@ -251,6 +291,7 @@ async def schedule_suggested_slot(request: Request, payload: ScheduleSlotRequest
             host_id=host.id,
             scheduled_time=scheduled_dt,
             status="EXPECTED",
+            source="PRE_REGISTERED",
             notes=f"Kiosk Scheduled Slot\nPurpose: {payload.purpose or 'Meeting'}\nNotes: {payload.notes or ''}"
         )
         db.add(appointment)
