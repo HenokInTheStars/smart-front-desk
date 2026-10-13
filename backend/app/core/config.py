@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     database_url: str
     database_url_readonly: str | None = None
+    test_database_url: str | None = None
     assistant_ro_password: str = "assistant_ro_secret"
     openai_api_key: str | None = None
     ai_api_key: str | None = None

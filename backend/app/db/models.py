@@ -85,7 +85,7 @@ class Appointment(Base):
     host_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=False)
     scheduled_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(appointment_status_enum, default="SCHEDULED", nullable=False)  # Scheduled, Checked In, Completed, Cancelled
-    source = Column(appointment_source_enum, default="WALK_IN", nullable=False)
+    source = Column(appointment_source_enum, server_default="WALK_IN", nullable=False)
     notes = Column(Text, nullable=True)
     checked_in_at = Column(DateTime(timezone=True), nullable=True, index=True)
     admitted_at = Column(DateTime(timezone=True), nullable=True)
