@@ -149,6 +149,7 @@ def get_client() -> AsyncOpenAI:
     client_kwargs = {"api_key": settings.ai_api_key}
     if settings.ai_base_url:
         client_kwargs["base_url"] = settings.ai_base_url
+    # Upstream AI provider client timeout aligned to 45s
     return AsyncOpenAI(**client_kwargs, max_retries=0, timeout=45.0)
 
 
