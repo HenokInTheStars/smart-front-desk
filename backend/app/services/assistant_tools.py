@@ -333,15 +333,18 @@ async def execute_get_visit_stats(
             "results": [dict(r) for r in rows]
         }
 
-    # Source grouping
+    # Source grouping (matches Compliance Reports page: WALK_IN + MANUAL = Walk-ins)
     elif group_by == "source":
         query = f"""
         SELECT 
-            v.source AS source,
+            CASE 
+                WHEN v.source IN ('WALK_IN', 'MANUAL') THEN 'WALK_IN' 
+                ELSE 'PRE_REGISTERED' 
+            END AS source,
             count(*) AS count
         FROM assistant_visits v
         WHERE v.scheduled_time >= :start_utc AND v.scheduled_time < :end_utc {filter_sql}
-        GROUP BY v.source
+        GROUP BY 1
         ORDER BY count DESC;
         """
         rows = (await db.execute(text(query), params)).mappings().all()
