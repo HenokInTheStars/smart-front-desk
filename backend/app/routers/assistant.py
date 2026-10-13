@@ -138,7 +138,7 @@ TOOL SELECTION:
 RULES & PRIVACY:
 - Explicitly state the date range evaluated in the answer. If results are 0, state 0.
 - Out of scope (weather, sports, personal advice): politely refuse and remind user of front desk reception scope.
-- Knowledge base: Call `search_docs` at most twice. If nothing relevant is returned, explicitly state that you do not have that information instead of guessing.
+- Knowledge base: Call `search_docs` at most twice. If nothing relevant is returned, explicitly state that you do not have that information instead of guessing. Answer how-to questions only with what the retrieved documents say and do not add steps or effects that are not in them.
 - PRIVACY: Never output individual visitor names, email addresses, phone numbers, or badge identifiers. Report only aggregated totals, trends, and percentages.
 - Tone: Direct, executive, concise. Core answer first, followed by key takeaway bullet points.
 """
@@ -149,7 +149,7 @@ def get_client() -> AsyncOpenAI:
     client_kwargs = {"api_key": settings.ai_api_key}
     if settings.ai_base_url:
         client_kwargs["base_url"] = settings.ai_base_url
-    return AsyncOpenAI(**client_kwargs, max_retries=0, timeout=20.0)
+    return AsyncOpenAI(**client_kwargs, max_retries=0, timeout=35.0)
 
 
 async def execute_single_tool(tc: Any, host_id: Optional[uuid.UUID], charts_collector: list) -> tuple:
@@ -527,11 +527,17 @@ async def chat_with_assistant(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="AI service rate limit exceeded. Please wait a moment before sending another query."
         )
+    except openai.InternalServerError as ise:
+        logger.warning(f"AI Provider Service Unavailable (503): {ise}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="AI service is temporarily experiencing high demand. Please try again in a moment."
+        )
     except openai.APITimeoutError as te:
-        logger.error(f"AI Provider Timeout (20s): {te}")
+        logger.error(f"AI Provider Timeout (35s): {te}")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="AI service timed out after 20 seconds. Please try again."
+            detail="AI service timed out after 35 seconds. Please try again."
         )
 
     if not final_result:
