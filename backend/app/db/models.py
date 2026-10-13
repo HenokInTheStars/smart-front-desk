@@ -16,6 +16,7 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 
 appointment_status_enum = Enum("SCHEDULED", "EXPECTED", "CHECKED_IN", "IN_MEETING", "COMPLETED", "CANCELLED", "NEEDS_REASSIGNMENT", name="appointment_status_enum")
+appointment_source_enum = Enum("WALK_IN", "PRE_REGISTERED", "MANUAL", name="appointment_source_enum")
 
 
 class Base(DeclarativeBase):
@@ -84,6 +85,7 @@ class Appointment(Base):
     host_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=False)
     scheduled_time = Column(DateTime(timezone=True), nullable=False)
     status = Column(appointment_status_enum, default="SCHEDULED", nullable=False)  # Scheduled, Checked In, Completed, Cancelled
+    source = Column(appointment_source_enum, default="WALK_IN", nullable=False)
     notes = Column(Text, nullable=True)
     checked_in_at = Column(DateTime(timezone=True), nullable=True, index=True)
     admitted_at = Column(DateTime(timezone=True), nullable=True)
