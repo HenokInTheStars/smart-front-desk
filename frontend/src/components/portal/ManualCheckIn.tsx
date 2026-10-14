@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { generateBadgePDF } from '@/lib/badgeGenerator';
 import HostFollowup from './HostFollowup';
+import { ETHIOPIAN_PHONE_ERROR, formatEthiopianPhoneInput, isValidEthiopianPhone, normalizeEthiopianPhone } from '@/lib/phone';
 
 interface ManualCheckInProps {
   currentUser: any;
@@ -183,7 +184,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
         name: prev.name || 'John Doe',
         company: prev.company || 'Acme Corp - Client Meeting',
         email: prev.email || 'john.doe@example.com',
-        phone: prev.phone || '555-010-9999'
+        phone: prev.phone || '+251911223344'
       }));
       setValidationErrors({});
       setIsScanning(false);
@@ -206,8 +207,8 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
       errors.hostName = 'Please select a host from the employee directory';
     }
 
-    if (!formData.phone.trim() || formData.phone.trim().length < 6) {
-      errors.phone = 'Phone number is required (minimum 6 digits)';
+    if (!formData.phone.trim() || !isValidEthiopianPhone(formData.phone)) {
+      errors.phone = ETHIOPIAN_PHONE_ERROR;
     }
 
     if (formData.email.trim() && !formData.email.includes('@')) {
@@ -271,7 +272,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
         purpose: formData.company,
         hostName: formData.hostName,
         email: formData.email.trim() || `walkin_${Date.now()}@temp.matrix`,
-        phone: formData.phone.trim() || undefined,
+        phone: normalizeEthiopianPhone(formData.phone) || undefined,
         notes: capturedPhoto ? '[PHOTO_CAPTURED]' : ''
       };
 
@@ -703,10 +704,11 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                             <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
                             <input 
                               type="tel" 
-                              placeholder="+251 911 223344" 
+                              placeholder="+251912345678" 
                               value={formData.phone} 
                               onChange={e => {
-                                setFormData({...formData, phone: e.target.value});
+                                const formatted = formatEthiopianPhoneInput(e.target.value);
+                                setFormData({...formData, phone: formatted});
                                 if (validationErrors.phone) {
                                   setValidationErrors(prev => { const upd = {...prev}; delete upd.phone; return upd; });
                                 }
@@ -728,9 +730,9 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                       {/* Step 1 Actions */}
                       <div className="flex items-center justify-between pt-6 border-t border-border/50">
                         <span className="text-xs text-muted-foreground">
-                          {!formData.name || !formData.company || !formData.hostName || !formData.phone ? (
+                          {!formData.name || !formData.company || !formData.hostName || !formData.phone || !isValidEthiopianPhone(formData.phone) ? (
                             <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium">
-                              <AlertTriangle size={13} /> Complete name, purpose, host, and phone to continue
+                              <AlertTriangle size={13} /> Complete name, purpose, host, and valid Ethiopian phone to continue
                             </span>
                           ) : (
                             <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
@@ -742,7 +744,7 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
                         <button 
                           type="button"
                           onClick={handleProceedToVerification} 
-                          disabled={!formData.name.trim() || !formData.company.trim() || !formData.hostName.trim() || !formData.phone.trim()}
+                          disabled={!formData.name.trim() || !formData.company.trim() || !formData.hostName.trim() || !formData.phone.trim() || !isValidEthiopianPhone(formData.phone)}
                           className="px-7 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex items-center gap-2"
                         >
                           Next: Verification <ArrowRight size={16} />

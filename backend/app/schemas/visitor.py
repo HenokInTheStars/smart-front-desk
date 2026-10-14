@@ -16,6 +16,30 @@ def validate_sanitized_string(v: Optional[str]) -> Optional[str]:
         raise ValueError(f"Generic or placeholder names are not allowed")
     return v
 
+ETHIOPIAN_PHONE_REGEX = re.compile(r"^\+251[79]\d{8}$")
+
+def normalize_ethiopian_phone(phone: Optional[str]) -> Optional[str]:
+    if not phone or not str(phone).strip():
+        return None
+    cleaned = re.sub(r"[\s\-()]", "", str(phone).strip())
+    if re.match(r"^0[79]\d{8}$", cleaned):
+        return "+251" + cleaned[1:]
+    if re.match(r"^[79]\d{8}$", cleaned):
+        return "+251" + cleaned
+    if re.match(r"^251[79]\d{8}$", cleaned):
+        return "+" + cleaned
+    if ETHIOPIAN_PHONE_REGEX.match(cleaned):
+        return cleaned
+    return cleaned
+
+def validate_ethiopian_phone(phone: Optional[str]) -> Optional[str]:
+    if not phone or not str(phone).strip():
+        return None
+    normalized = normalize_ethiopian_phone(phone)
+    if not normalized or not ETHIOPIAN_PHONE_REGEX.match(normalized):
+        raise ValueError("Phone number must be an Ethiopian mobile number in the format +251 followed by 9 digits starting with 9 or 7")
+    return normalized
+
 class VisitorBase(BaseModel):
     full_name: str
     company: Optional[str] = None
@@ -38,6 +62,13 @@ class CheckInRequest(BaseModel):
     @classmethod
     def sanitize_names(cls, v: Optional[str]) -> Optional[str]:
         return validate_sanitized_string(v)
+
+    @field_validator('phone', mode='before')
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if not v or not str(v).strip():
+            return None
+        return validate_ethiopian_phone(v)
 
 
 
@@ -65,6 +96,18 @@ class ScheduleSlotRequest(BaseModel):
     host_id: Optional[UUID] = None
     host_name: Optional[str] = None
     scheduled_time: str
+
+    @field_validator('firstName', 'lastName', mode='before', check_fields=False)
+    @classmethod
+    def sanitize_names(cls, v: Optional[str]) -> Optional[str]:
+        return validate_sanitized_string(v)
+
+    @field_validator('phone', mode='before')
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if not v or not str(v).strip():
+            return None
+        return validate_ethiopian_phone(v)
 
 
 class ScheduleSlotResponse(BaseModel):

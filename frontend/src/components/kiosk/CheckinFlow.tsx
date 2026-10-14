@@ -3,6 +3,7 @@ import HostUnavailableModal from './HostUnavailableModal';
 import { z } from 'zod';
 import { checkinVisitor, scheduleSlot } from '@/lib/api/visitors';
 import { evaluateHostAvailability } from '@/lib/api/schedules';
+import { ETHIOPIAN_PHONE_REGEX, ETHIOPIAN_PHONE_ERROR, formatEthiopianPhoneInput, normalizeEthiopianPhone } from '@/lib/phone';
 
 interface CheckinFlowProps {
     setScreen: (screen: 'landing' | 'checkin' | 'ai') => void;
@@ -52,7 +53,9 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                 const blocked = ["lorem", "ipsum", "test", "john", "doe", "visitor"];
                 return !blocked.some(b => val.toLowerCase().includes(b));
             }, "Please enter a valid real name"),
-        phone: z.string().regex(/^\+251\d{9}$/, "Phone number must be in the format +251 followed by 9 digits").optional().or(z.literal(''))
+        phone: z.string().refine(val => !val || ETHIOPIAN_PHONE_REGEX.test(normalizeEthiopianPhone(val)), {
+            message: ETHIOPIAN_PHONE_ERROR
+        }).optional().or(z.literal(''))
     });
 
     const handleNext = async (e?: React.FormEvent) => {
@@ -63,7 +66,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                 checkinSchema.parse({
                     firstName: formData.firstName.trim(),
                     lastName: formData.lastName.trim(),
-                    phone: formData.phone.trim() || undefined
+                    phone: formData.phone.trim() ? normalizeEthiopianPhone(formData.phone) : undefined
                 });
             } catch (err: any) {
                 setFormError(err.errors[0].message);
@@ -266,11 +269,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Phone Number</label>
                                     <input type="tel" value={formData.phone} onChange={(e) => {
-                                        let val = e.target.value.replace(/[^\d+]/g, '');
-                                        if (val && !val.startsWith('+251')) {
-                                            val = '+251' + val.replace(/\+/g, '').replace(/^251/, '');
-                                        }
-                                        setFormData({ ...formData, phone: val });
+                                        setFormData({ ...formData, phone: formatEthiopianPhoneInput(e.target.value) });
                                     }} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#0058be] outline-none transition-all text-base" placeholder="+251912345678" />
                                 </div>
                             </div>
