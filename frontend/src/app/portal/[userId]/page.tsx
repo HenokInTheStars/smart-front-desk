@@ -28,6 +28,7 @@ import KioskCommunication from '@/components/portal/KioskCommunication';
 import SecuritySettings from '@/components/portal/SecuritySettings';
 import NotificationFeed from '@/components/portal/NotificationFeed';
 import AIAssistant from '@/components/portal/AIAssistant';
+import { AIAssistantProvider, getAIAssistantStorageKey } from '@/context/AIAssistantContext';
 
 import { useTheme } from 'next-themes';
 
@@ -338,6 +339,13 @@ export default function UnifiedPortal() {
 
   const handleSignOut = () => {
     sessionStorage.removeItem('access_token');
+    if (currentUser?.id) {
+      try {
+        sessionStorage.removeItem(getAIAssistantStorageKey(currentUser.id));
+      } catch (e) {
+        console.error(e);
+      }
+    }
     router.push('/');
   };
 
@@ -433,7 +441,8 @@ export default function UnifiedPortal() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground font-sans antialiased overflow-hidden selection:bg-primary selection:text-primary-foreground">
+    <AIAssistantProvider currentUser={currentUser}>
+      <div className="flex flex-col h-screen bg-background text-foreground font-sans antialiased overflow-hidden selection:bg-primary selection:text-primary-foreground">
       
       {/* Top Header */}
       <header className="h-16 bg-card border-b border-border px-8 flex items-center justify-between shrink-0 z-20">
@@ -633,5 +642,6 @@ export default function UnifiedPortal() {
         ))}
       </div>
     </div>
+    </AIAssistantProvider>
   );
 }
