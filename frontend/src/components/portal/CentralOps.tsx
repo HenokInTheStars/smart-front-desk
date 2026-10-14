@@ -466,11 +466,21 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Tools Executed</span>
                                                    <div className="text-xs font-semibold text-foreground mt-1 flex flex-wrap gap-1">
                                                      {event.aiData.tools_called && event.aiData.tools_called.length > 0 ? (
-                                                       event.aiData.tools_called.map((tool: string, idx: number) => (
-                                                         <span key={idx} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-mono">
-                                                           {tool}
-                                                         </span>
-                                                       ))
+                                                       event.aiData.tools_called.map((tool: any, idx: number) => {
+                                                         const toolName = typeof tool === 'string' ? tool : (tool?.name || 'tool');
+                                                         const toolArgs = typeof tool === 'object' && tool?.arguments && Object.keys(tool.arguments).length > 0
+                                                           ? JSON.stringify(tool.arguments)
+                                                           : null;
+                                                         return (
+                                                           <span 
+                                                             key={idx} 
+                                                             title={toolArgs ? `Arguments: ${toolArgs}` : undefined}
+                                                             className="px-2 py-0.5 rounded bg-primary/10 text-primary text-[11px] font-mono border border-primary/20"
+                                                           >
+                                                             {toolName}
+                                                           </span>
+                                                         );
+                                                       })
                                                      ) : (
                                                        <span className="text-muted-foreground text-xs font-normal">None (Direct)</span>
                                                      )}
