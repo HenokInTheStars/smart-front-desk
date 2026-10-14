@@ -12,14 +12,29 @@ export default function NotificationFeed({ currentUser, isPanel = false }: Notif
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const getStorageKey = (userId?: string) => `sfd_notifs_last_read_${userId || 'anonymous'}`;
+
+  const markAllRead = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(getStorageKey(currentUser?.id), Date.now().toString());
+      }
+    } catch {}
+    setNotifications(prev => prev.map(n => ({ ...n, isNew: false })));
+  };
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         const token = sessionStorage.getItem('access_token');
-        if (!token || !currentUser?.numeric_host_id) return;
+        if (!token) return;
 
-        // Fetch recent appointments for this host as "notifications"
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments?host_id=${currentUser.numeric_host_id}`, {
+        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments`;
+        if (currentUser?.role === 'HOST' && currentUser?.numeric_host_id) {
+          url += `?host_id=${currentUser.numeric_host_id}`;
+        }
+
+        const res = await fetch(url, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -27,15 +42,24 @@ export default function NotificationFeed({ currentUser, isPanel = false }: Notif
           const raw = await res.json();
           const apts = raw.data || [];
           
+          let lastRead = 0;
+          try {
+            const stored = localStorage.getItem(getStorageKey(currentUser?.id));
+            if (stored) lastRead = parseInt(stored, 10);
+          } catch {}
+
           // Map appointments to a notification format, sorted by most recent
-          const mapped = apts.map((apt: any) => ({
-            id: apt.id,
-            title: apt.status === 'CHECKED_IN' ? 'Visitor Arrived' : 'New Appointment Scheduled',
-            message: `${apt.visitor?.full_name} (${apt.visitor?.company || 'Guest'}) is here for a ${apt.purpose || 'meeting'}. Note: ${apt.notes || 'No extra notes'}`,
-            time: new Date(apt.created_at || apt.scheduled_time),
-            status: apt.status,
-            isNew: apt.status === 'CHECKED_IN' // visually highlight checked-in as unread/urgent
-          })).sort((a: any, b: any) => b.time.getTime() - a.time.getTime());
+          const mapped = apts.map((apt: any) => {
+            const time = new Date(apt.created_at || apt.scheduled_time);
+            return {
+              id: apt.id,
+              title: apt.status === 'CHECKED_IN' ? 'Visitor Arrived' : 'New Appointment Scheduled',
+              message: `${apt.visitor?.full_name} (${apt.visitor?.company || 'Guest'}) is here for a ${apt.purpose || 'meeting'}. Note: ${apt.notes || 'No extra notes'}`,
+              time,
+              status: apt.status,
+              isNew: (apt.status === 'CHECKED_IN' || apt.status === 'EXPECTED') && time.getTime() > lastRead
+            };
+          }).sort((a: any, b: any) => b.time.getTime() - a.time.getTime());
 
           setNotifications(mapped);
         }
@@ -49,23 +73,35 @@ export default function NotificationFeed({ currentUser, isPanel = false }: Notif
     fetchNotifications();
   }, [currentUser]);
 
+  const newCount = notifications.filter(n => n.isNew).length;
+
   return (
     <div className={`space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ${isPanel ? 'w-full p-4' : 'max-w-4xl mx-auto pb-12'}`}>
-      {!isPanel && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Notification Feed</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Stay updated on visitor arrivals, schedule changes, and alerts.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-             <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full">
-               {notifications.filter(n => n.isNew).length} New Alerts
-             </span>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className={`${isPanel ? 'text-lg' : 'text-2xl'} font-bold text-foreground tracking-tight`}>
+            {isPanel ? 'Arrival Alerts' : 'Notification Feed'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Stay updated on visitor arrivals, schedule changes, and alerts.
+          </p>
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          {newCount > 0 && (
+            <span className="bg-destructive/10 text-destructive text-xs font-bold px-2.5 py-1 rounded-full">
+              {newCount} New
+            </span>
+          )}
+          {newCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+            >
+              Mark read
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className={`bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden ${isPanel ? 'rounded-2xl border-none shadow-none' : 'rounded-3xl'}`}>
         {isLoading ? (

@@ -46,9 +46,39 @@ export default function UnifiedPortal() {
   const [toasts, setToasts] = useState<{id: string, title: string, message: string}[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const initialFetchDone = useRef(false);
   const isPollingRef = useRef(false);
+
+  // Unread notification persistence in localStorage
+  const getStorageKey = (userId?: string) => `sfd_notifs_last_read_${userId || 'anonymous'}`;
+
+  const getLastReadTime = (userId?: string): number => {
+    try {
+      if (typeof window === 'undefined') return 0;
+      const val = localStorage.getItem(getStorageKey(userId));
+      return val ? parseInt(val, 10) : 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const markNotificationsAsRead = () => {
+    setUnreadCount(0);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(getStorageKey(currentUser?.id), Date.now().toString());
+      }
+    } catch {}
+  };
+
+  // Automatically mark notifications as read when panel or feed tab is opened
+  useEffect(() => {
+    if (sidePanel === 'notifications' || activeTab === '19_notification_feed') {
+      markNotificationsAsRead();
+    }
+  }, [sidePanel, activeTab, currentUser]);
 
   // Request Notification permission
   useEffect(() => {
@@ -57,7 +87,7 @@ export default function UnifiedPortal() {
     }
   }, []);
 
-  // Poll for new appointments to trigger Chrome Notifications
+  // Poll for new appointments to trigger Chrome Notifications and update unread count
   useEffect(() => {
     if (!currentUser) return;
     
@@ -82,6 +112,18 @@ export default function UnifiedPortal() {
         if (res.ok) {
           const raw = await res.json();
           const apts = raw.data || [];
+
+          // Compute unread count based on last seen timestamp in localStorage
+          const lastRead = getLastReadTime(currentUser?.id);
+          const activeUnread = apts.filter((a: any) => {
+            if (a.status !== 'CHECKED_IN' && a.status !== 'EXPECTED') return false;
+            const time = new Date(a.created_at || a.scheduled_time).getTime();
+            return time > lastRead;
+          }).length;
+
+          if (sidePanel !== 'notifications' && activeTab !== '19_notification_feed') {
+            setUnreadCount(activeUnread);
+          }
           
           if (!initialFetchDone.current) {
              seenIdsRef.current = new Set(apts.map((a: any) => `${a.id}-${a.status}`));
@@ -163,7 +205,42 @@ export default function UnifiedPortal() {
     pollAppointments();
     const intervalId = setInterval(pollAppointments, 10000); // Check every 10 seconds
     return () => clearInterval(intervalId);
-  }, [currentUser]);
+  }, [currentUser, sidePanel, activeTab]);
+
+  // Real-time SSE listener for live notification dot update
+  useEffect(() => {
+    if (!currentUser) return;
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    let es: EventSource | null = null;
+
+    try {
+      es = new EventSource(`${baseUrl}/live/updates`);
+
+      es.addEventListener('checkin', (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          const isHost = currentUser.role === 'HOST';
+          if (isHost && currentUser.full_name && data.assigned_host) {
+            if (data.assigned_host.toLowerCase() !== currentUser.full_name.toLowerCase()) {
+              return; // Filter out notifications not intended for this host
+            }
+          }
+
+          if (sidePanel !== 'notifications' && activeTab !== '19_notification_feed') {
+            setUnreadCount(prev => prev + 1);
+          }
+        } catch (err) {
+          console.error('SSE checkin parse error', err);
+        }
+      });
+    } catch (err) {
+      console.error('Failed to connect to SSE stream', err);
+    }
+
+    return () => {
+      if (es) es.close();
+    };
+  }, [currentUser, sidePanel, activeTab]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -371,11 +448,26 @@ export default function UnifiedPortal() {
           {/* Header Icons for Notifications and Messages */}
           {(hasPerm('19_notification_feed') || hasPerm('16_arrival_alerts')) && (
             <button 
-              onClick={() => setSidePanel(sidePanel === 'notifications' ? null : 'notifications')}
-              className={`p-2 rounded-full transition-colors ${sidePanel === 'notifications' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+              onClick={() => {
+                const nextState = sidePanel === 'notifications' ? null : 'notifications';
+                setSidePanel(nextState);
+                if (nextState === 'notifications') {
+                  markNotificationsAsRead();
+                }
+              }}
+              className={`relative p-2 rounded-full transition-colors ${sidePanel === 'notifications' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
               title="Arrival Alerts / Notifications"
+              aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Arrival Alerts / Notifications"}
             >
               <Bell size={20} />
+              {unreadCount > 0 && (
+                <span 
+                  className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-card shadow-sm animate-in zoom-in-50"
+                  aria-hidden="true"
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
           )}
 
