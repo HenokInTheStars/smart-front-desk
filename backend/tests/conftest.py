@@ -70,6 +70,7 @@ def pytest_sessionstart(session):
         # Seed default users and hosts on the isolated test database
         from app.db.seed_defaults import seed_all_default_users_and_hosts
         await seed_all_default_users_and_hosts()
+        await test_engine.dispose()
 
     try:
         asyncio.run(verify_live_database())

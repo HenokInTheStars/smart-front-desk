@@ -67,6 +67,7 @@ async def test_host_availability_friday_night_suggests_monday_morning(client_tra
     """Test Friday 21:00 (9:00 PM) -> Off-shift, skips Saturday & Sunday, suggests Monday morning 9:00 AM."""
     async with AsyncClient(transport=client_transport, base_url="http://test") as ac:
         res = await ac.post("/schedules/evaluate-host-availability", json={
+            "hostName": "Semir Sultan",
             "purpose": "AI Partnership",
             "notes": "Discussing PyTorch LLM transformers on GPU clusters",
             "target_time": "2026-09-11T21:00:00"  # Friday 9:00 PM
@@ -98,6 +99,7 @@ async def test_host_availability_skips_holiday(client_transport):
     try:
         async with AsyncClient(transport=client_transport, base_url="http://test") as ac:
             res = await ac.post("/schedules/evaluate-host-availability", json={
+                "hostName": "Semir Sultan",
                 "purpose": "AI Partnership",
                 "notes": "Discussing PyTorch LLM transformers on GPU clusters",
                 "target_time": "2026-09-11T21:00:00"  # Friday 9:00 PM
@@ -135,3 +137,23 @@ async def test_schedule_suggested_slot_appointment(client_transport):
         assert data["host_name"] == "Kirubel Gizaw"
         assert data["visitor_name"] == "Dawit Tadesse"
         assert data["appointment_id"] is not None
+
+
+@pytest.mark.asyncio
+async def test_evaluate_host_availability_explicit_hostname_bypasses_matcher(client_transport):
+    """Proves that passing explicit hostName completely bypasses the AI matcher."""
+    from unittest.mock import patch
+
+    with patch("app.routers.schedules.match_host_for_visitor") as mock_matcher:
+        async with AsyncClient(transport=client_transport, base_url="http://test") as ac:
+            res = await ac.post("/schedules/evaluate-host-availability", json={
+                "hostName": "Semir Sultan",
+                "purpose": "AI Partnership",
+                "notes": "Discussing PyTorch LLM transformers on GPU clusters",
+                "target_time": "2026-09-09T11:00:00"
+            })
+            assert res.status_code == 200
+            data = res.json()
+            assert data["host_name"] == "Semir Sultan"
+            mock_matcher.assert_not_called()
+

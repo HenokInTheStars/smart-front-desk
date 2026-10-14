@@ -42,8 +42,8 @@ async def test_superadmin_login_success(client_transport):
         me_data = me_res.json()["data"]
         assert me_data["email"] == "superadmin@example.com"
         assert me_data["role"] == "SUPER_ADMIN"
-        assert "manage_users" in me_data["permissions"]
-        assert "system_logs" in me_data["permissions"]
+        assert "6_manage_roles" in me_data["permissions"]
+        assert "1_central_ops" in me_data["permissions"]
 
 
 @pytest.mark.asyncio
@@ -73,8 +73,8 @@ async def test_admin_and_reception_login_success(client_transport):
         assert rec_me.status_code == 200
         rec_data = rec_me.json()["data"]
         assert rec_data["role"] == "RECEPTION"
-        assert "view_queue" in rec_data["permissions"]
-        assert "print_badge" in rec_data["permissions"]
+        assert "7_global_lobby_view" in rec_data["permissions"]
+        assert "9_manage_badges" in rec_data["permissions"]
 
 
 @pytest.mark.asyncio

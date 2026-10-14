@@ -24,7 +24,7 @@ async def test_sms_notifications_on_checkin_and_ready(client_transport):
             # Step 1: Check in a visitor
             checkin_res = await ac.post("/visitors/checkin", json={
                 "firstName": "Sms",
-                "lastName": "Tester",
+                "lastName": "Kassahun",
                 "email": "sms@example.com",
                 "phone": "+251912345678",
                 "purpose": "SMS Test",
@@ -54,7 +54,7 @@ async def test_sms_notifications_on_checkin_and_ready(client_transport):
         with patch('app.routers.visitors.send_sms'):
             await ac.post("/visitors/checkin", json={
                 "firstName": "Second",
-                "lastName": "Tester",
+                "lastName": "Kassahun",
                 "email": "second@example.com",
                 "phone": "+251999999999",
                 "purpose": "Meeting",
@@ -79,7 +79,7 @@ async def test_sms_notifications_on_checkin_and_ready(client_transport):
             apts_res = await ac.get("/appointments", headers=headers)
             apts = apts_res.json()["data"]
             # Find the first one
-            first_apt = next(a for a in apts if a["visitor"]["full_name"] == "Sms Tester")
+            first_apt = next(a for a in apts if a["visitor"]["full_name"] == "Sms Kassahun")
             
             update_res = await ac.patch(f"/appointments/{first_apt['id']}", json={
                 "status": "COMPLETED"
