@@ -22,6 +22,8 @@ import {
   MessageMetadata, 
   Message 
 } from '@/context/AIAssistantContext';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface AIAssistantProps {
   currentUser: any;
@@ -231,9 +233,53 @@ export default function AIAssistant({ currentUser }: AIAssistantProps) {
                       ? 'bg-primary text-primary-foreground border-primary rounded-tr-none' 
                       : 'bg-card text-foreground border-border rounded-tl-none'
                   }`}>
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
-                      {msg.content}
-                    </div>
+                    {isUser ? (
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed font-sans">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <div className="text-sm leading-relaxed font-sans overflow-hidden">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: ({ node, ...props }) => <h1 className="text-base font-bold mt-2.5 mb-1.5 first:mt-0 text-foreground" {...props} />,
+                            h2: ({ node, ...props }) => <h2 className="text-sm font-bold mt-2.5 mb-1 first:mt-0 text-foreground" {...props} />,
+                            h3: ({ node, ...props }) => <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-2 mb-1 first:mt-0" {...props} />,
+                            h4: ({ node, ...props }) => <h4 className="text-xs font-semibold mt-1.5 mb-1 first:mt-0 text-foreground" {...props} />,
+                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed text-foreground" {...props} />,
+                            strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
+                            em: ({ node, ...props }) => <em className="italic" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="list-disc list-outside ml-4 mb-2 space-y-1 text-foreground" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="list-decimal list-outside ml-4 mb-2 space-y-1 text-foreground" {...props} />,
+                            li: ({ node, ...props }) => <li className="pl-0.5 leading-relaxed" {...props} />,
+                            blockquote: ({ node, ...props }) => (
+                              <blockquote className="border-l-2 border-primary/50 pl-3 italic my-2 text-muted-foreground text-xs" {...props} />
+                            ),
+                            code: ({ node, inline, ...props }: any) => (
+                              inline ? (
+                                <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs text-foreground font-medium" {...props} />
+                              ) : (
+                                <pre className="p-3 rounded-lg bg-muted/80 font-mono text-xs overflow-x-auto my-2 border border-border text-foreground">
+                                  <code {...props} />
+                                </pre>
+                              )
+                            ),
+                            table: ({ node, ...props }) => (
+                              <div className="overflow-x-auto my-3 border border-border rounded-lg shadow-sm">
+                                <table className="w-full text-xs text-left border-collapse" {...props} />
+                              </div>
+                            ),
+                            thead: ({ node, ...props }) => <thead className="bg-muted/70 text-foreground border-b border-border font-semibold" {...props} />,
+                            tbody: ({ node, ...props }) => <tbody className="divide-y divide-border/60" {...props} />,
+                            tr: ({ node, ...props }) => <tr className="hover:bg-muted/30 transition-colors" {...props} />,
+                            th: ({ node, ...props }) => <th className="px-3 py-2 font-semibold text-foreground text-xs" {...props} />,
+                            td: ({ node, ...props }) => <td className="px-3 py-2 text-muted-foreground text-xs" {...props} />
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
 
                     <div className={`flex items-center justify-between gap-4 mt-2 pt-2 border-t text-[11px] ${
                       isUser ? 'border-primary-foreground/20 text-primary-foreground/80' : 'border-border/60 text-muted-foreground'
