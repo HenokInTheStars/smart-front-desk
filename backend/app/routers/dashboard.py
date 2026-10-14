@@ -1,7 +1,8 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from app.db.session import get_db
 from app.db.models import Appointment
 from app.schemas.responses import StandardResponseEnvelope
@@ -120,17 +121,30 @@ async def get_system_health(request: Request, db: AsyncSession = Depends(get_db)
     )
 
 @router.get("/audit-logs")
-async def get_audit_logs(request: Request, db: AsyncSession = Depends(get_db)):
+async def get_audit_logs(
+    request: Request,
+    search: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
     """
     Returns recent audit logs.
     """
     from app.db.models import AuditLog, User
-    res = await db.execute(
+    query = (
         select(AuditLog)
         .options(joinedload(AuditLog.user))
         .order_by(AuditLog.created_at.desc())
-        .limit(20)
     )
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.join(AuditLog.user, isouter=True).where(
+            or_(
+                AuditLog.action.ilike(term),
+                AuditLog.detail.ilike(term),
+                User.email.ilike(term)
+            )
+        )
+    res = await db.execute(query.limit(50))
     logs = res.scalars().all()
     
     out = []

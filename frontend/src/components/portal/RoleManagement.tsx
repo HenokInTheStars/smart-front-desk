@@ -64,14 +64,18 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
   }, []);
 
   useEffect(() => {
-    if (!searchQuery) {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) {
       setFilteredUsers(users);
     } else {
-      setFilteredUsers(users.filter(u => 
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.custom_role_name && u.custom_role_name.toLowerCase().includes(searchQuery.toLowerCase()))
-      ));
+      setFilteredUsers(users.filter(u => {
+        const email = (u.email || '').toLowerCase();
+        const role = (u.role || '').toLowerCase();
+        const customRole = (u.custom_role_name || '').toLowerCase();
+        const status = u.is_active ? 'active' : 'suspended';
+        const desc = (u.description || '').toLowerCase();
+        return email.includes(q) || role.includes(q) || customRole.includes(q) || status.includes(q) || desc.includes(q);
+      }));
     }
   }, [searchQuery, users]);
 
@@ -382,10 +386,26 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
             <input 
               type="text" 
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search users by email or role..." 
-              className="pl-9 pr-4 py-1.5 text-sm border border-border rounded-lg bg-card focus:ring-2 focus:ring-primary outline-none w-72"
+              className="pl-9 pr-8 py-1.5 text-sm border border-border rounded-lg bg-card focus:ring-2 focus:ring-primary outline-none w-72"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="text-xs font-semibold text-muted-foreground">
             {filteredUsers.length} Users Found
@@ -445,7 +465,9 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
               {filteredUsers.length === 0 && !isLoading && (
                  <tr>
                     <td colSpan={4} className="px-6 py-12 text-center">
-                       <p className="text-muted-foreground text-sm font-medium">No users found matching your search.</p>
+                       <p className="text-muted-foreground text-sm font-medium">
+                         {searchQuery.trim() ? `No users found matching "${searchQuery.trim()}".` : 'No users found.'}
+                       </p>
                     </td>
                  </tr>
               )}

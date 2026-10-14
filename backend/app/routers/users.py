@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, or_, cast, String
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import get_db
@@ -220,10 +220,21 @@ async def list_users(
     request: Request,
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(RequirePermission(["6_manage_roles"]))
 ):
-    result = await db.execute(select(User).order_by(User.id).offset(skip).limit(limit))
+    query = select(User).order_by(User.id)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.where(
+            or_(
+                User.email.ilike(term),
+                cast(User.role, String).ilike(term),
+                User.custom_role_name.ilike(term)
+            )
+        )
+    result = await db.execute(query.offset(skip).limit(limit))
     users = result.scalars().all()
     return StandardResponseEnvelope(
         internalCode="SUCCESS-200",

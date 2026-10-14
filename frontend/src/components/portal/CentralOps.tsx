@@ -5,7 +5,7 @@ import {
   Activity, Server, Shield, 
   CheckCircle2, Info, AlertTriangle, ChevronRight, ChevronLeft, 
   Search, Calendar, Users, 
-  ArrowUpRight
+  ArrowUpRight, X
 } from 'lucide-react';
 import GlobalLobbyView from './GlobalLobbyView';
 import { TablePagination } from '../ui/TablePagination';
@@ -25,6 +25,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
   const [mainTab, setMainTab] = React.useState<'lobby' | 'host_audits'>('lobby');
   const [mainPageSize, setMainPageSize] = React.useState(10);
   const [mainCurrentPage, setMainCurrentPage] = React.useState(1);
+  const [searchQuery, setSearchQuery] = React.useState('');
   const [activityPageSize, setActivityPageSize] = React.useState(5);
   const [activityCurrentPage, setActivityCurrentPage] = React.useState(1);
 
@@ -155,23 +156,59 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                       <input 
                         type="text" 
                         placeholder="Search records..." 
-                        className="pl-9 pr-4 py-2 border border-border/50 rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all shadow-sm"
+                        value={searchQuery}
+                        onChange={e => {
+                          setSearchQuery(e.target.value);
+                          setMainCurrentPage(1);
+                        }}
+                        className="pl-9 pr-8 py-2 border border-border/50 rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all shadow-sm"
                       />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setMainCurrentPage(1);
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                          title="Clear search"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
                  </div>
 
                  {/* Minimalist Data Grid */}
                  <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
-                    {logs.filter(l => l.user_id).length === 0 && (
-                      <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
-                        <Server size={32} className="opacity-20" />
-                        <p className="text-sm font-medium">No host escort audits found.</p>
-                      </div>
-                    )}
-                    
                     {(() => {
-                      const filteredLogs = logs.filter(l => l.user_id);
-                      if (filteredLogs.length === 0) return null;
+                      const hostLogs = logs.filter(l => l.user_id);
+                      if (hostLogs.length === 0) {
+                        return (
+                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3 py-16">
+                            <Server size={32} className="opacity-20" />
+                            <p className="text-sm font-medium">No host escort audits found.</p>
+                          </div>
+                        );
+                      }
+
+                      const q = searchQuery.toLowerCase().trim();
+                      const filteredLogs = hostLogs.filter((log: any) => {
+                        if (!q) return true;
+                        let safeTimeStr = log.time || '';
+                        if (log.time) {
+                          const hasOffset = log.time.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(log.time);
+                          safeTimeStr = hasOffset ? log.time : log.time + 'Z';
+                        }
+                        const d = new Date(safeTimeStr);
+                        const timeStr = isNaN(d.getTime()) ? "Unknown Date" : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+                        
+                        const eventDetail = (log.detail || log.title || '').toLowerCase();
+                        const time = timeStr.toLowerCase();
+                        const actor = (log.meta || '').toLowerCase();
+                        return eventDetail.includes(q) || time.includes(q) || actor.includes(q);
+                      });
+
                       const paginatedLogs = filteredLogs.slice((mainCurrentPage - 1) * mainPageSize, mainCurrentPage * mainPageSize);
                       return (
                         <div className="flex flex-col">
@@ -186,6 +223,13 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border/20">
+                          {filteredLogs.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">
+                                No records found matching "{searchQuery.trim()}".
+                              </td>
+                            </tr>
+                          )}
                           {paginatedLogs.map((log: any, i: number) => {
                             const globalIndex = (mainCurrentPage - 1) * mainPageSize + i + 1;
                             let safeTimeStr = log.time;

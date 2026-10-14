@@ -1,6 +1,7 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 from app.db.session import get_db
 from app.db.models import Employee, Appointment, User
 from app.core.security import RequirePermission
@@ -19,25 +20,42 @@ async def list_employees(
     request: Request,
     skip: int = 0, 
     limit: int = 50,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(Employee).offset(skip).limit(limit))
+    def build_query():
+        q = select(Employee)
+        if search and search.strip():
+            term = f"%{search.strip()}%"
+            q = q.where(
+                or_(
+                    Employee.full_name.ilike(term),
+                    Employee.department.ilike(term),
+                    Employee.phone.ilike(term),
+                    Employee.employee_id.ilike(term)
+                )
+            )
+        return q
+
+    result = await db.execute(build_query().offset(skip).limit(limit))
     employees = result.scalars().all()
 
     # If database has not been seeded yet, seed from verified directory
-    if not employees:
-        for emp_data in EMPLOYEE_DIRECTORY:
-            new_emp = Employee(
-                employee_id=emp_data["employee_id"],
-                full_name=emp_data["name"],
-                department=f"{emp_data['department']} ({emp_data['job_title']})",
-                phone="+1 (555) 010-0000"
-            )
-            db.add(new_emp)
-        await db.commit()
-        
-        result = await db.execute(select(Employee).offset(skip).limit(limit))
-        employees = result.scalars().all()
+    if not employees and not search:
+        total_count = await db.scalar(select(func.count(Employee.id)))
+        if total_count == 0:
+            for emp_data in EMPLOYEE_DIRECTORY:
+                new_emp = Employee(
+                    employee_id=emp_data["employee_id"],
+                    full_name=emp_data["name"],
+                    department=f"{emp_data['department']} ({emp_data['job_title']})",
+                    phone="+1 (555) 010-0000"
+                )
+                db.add(new_emp)
+            await db.commit()
+            
+            result = await db.execute(build_query().offset(skip).limit(limit))
+            employees = result.scalars().all()
 
     # Dynamic availability status for reception board
     active_meetings_res = await db.execute(

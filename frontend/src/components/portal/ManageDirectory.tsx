@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TablePagination } from '../ui/TablePagination';
-import { Users, Search, RefreshCw, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Users, Search, RefreshCw, Plus, Edit2, Trash2, X } from 'lucide-react';
 
 interface ManageDirectoryProps {
   currentUser: any;
@@ -12,6 +12,7 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   React.useEffect(() => {
@@ -67,20 +68,57 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
       <div className="bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
           <div className="text-foreground/90 font-bold">
-            Active Directory ({employees.length})
+            Active Directory ({(() => {
+              const q = searchQuery.toLowerCase().trim();
+              if (!q) return employees.length;
+              return employees.filter(emp => (
+                (emp.name && emp.name.toLowerCase().includes(q)) ||
+                (emp.email && emp.email.toLowerCase().includes(q)) ||
+                (emp.dept && emp.dept.toLowerCase().includes(q)) ||
+                (emp.title && emp.title.toLowerCase().includes(q))
+              )).length;
+            })()})
           </div>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
             <input 
               type="text" 
               placeholder="Search directory..." 
-              className="pl-9 pr-4 py-1.5 text-sm border border-border rounded-lg bg-card focus:ring-2 focus:ring-primary outline-none w-64"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-9 pr-8 py-1.5 text-sm border border-border rounded-lg bg-card focus:ring-2 focus:ring-primary outline-none w-64"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
         
         {(() => {
-          const paginated = employees.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+          const q = searchQuery.toLowerCase().trim();
+          const filteredEmployees = employees.filter(emp => {
+            if (!q) return true;
+            return (
+              (emp.name && emp.name.toLowerCase().includes(q)) ||
+              (emp.email && emp.email.toLowerCase().includes(q)) ||
+              (emp.dept && emp.dept.toLowerCase().includes(q)) ||
+              (emp.title && emp.title.toLowerCase().includes(q))
+            );
+          });
+          const paginated = filteredEmployees.slice((currentPage - 1) * pageSize, currentPage * pageSize);
           return (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -93,6 +131,13 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
+              {filteredEmployees.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-muted-foreground">
+                    {searchQuery.trim() ? `No staff members found matching "${searchQuery.trim()}".` : 'No employees in directory.'}
+                  </td>
+                </tr>
+              )}
               {paginated.map(emp => (
                 <tr key={emp.id} className="hover:bg-muted/30 transition-colors group">
                   <td className="px-6 py-4">
@@ -117,7 +162,7 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
               ))}
             </tbody>
           </table>
-          <TablePagination totalItems={employees.length} pageSize={pageSize} setPageSize={setPageSize} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          <TablePagination totalItems={filteredEmployees.length} pageSize={pageSize} setPageSize={setPageSize} currentPage={currentPage} setCurrentPage={setCurrentPage} />
           </div>
           );
         })()}

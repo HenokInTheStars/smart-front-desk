@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BellRing, CheckCircle2, UserCircle2, MapPin, Search } from 'lucide-react';
+import { BellRing, CheckCircle2, UserCircle2, MapPin, Search, X } from 'lucide-react';
 
 interface ReassignGuestsProps {
   currentUser: any;
@@ -10,6 +10,7 @@ interface ReassignGuestsProps {
 export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [reassigningAlertId, setReassigningAlertId] = useState<string | null>(null);
   const [selectedHostId, setSelectedHostId] = useState<string>('');
@@ -154,7 +155,20 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
           </p>
         </div>
         <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl font-bold text-sm border border-red-200">
-           {alerts.length} Active Alerts
+           {(() => {
+             const q = searchQuery.toLowerCase().trim();
+             if (!q) return `${alerts.length} Active Alerts`;
+             const count = alerts.filter(alert => (
+               (alert.visitorName && alert.visitorName.toLowerCase().includes(q)) ||
+               (alert.company && alert.company.toLowerCase().includes(q)) ||
+               (alert.phone && alert.phone.toLowerCase().includes(q)) ||
+               (alert.originalHostName && alert.originalHostName.toLowerCase().includes(q)) ||
+               (alert.notes && alert.notes.toLowerCase().includes(q)) ||
+               (alert.type && alert.type.toLowerCase().includes(q)) ||
+               (alert.time && alert.time.toLowerCase().includes(q))
+             )).length;
+             return `${count} of ${alerts.length} Alerts`;
+           })()}
         </div>
       </div>
 
@@ -162,23 +176,67 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
         <div className="p-4 border-b border-border bg-muted/20 flex justify-between items-center">
            <div className="relative w-64">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-             <input type="text" placeholder="Search alerts..." className="w-full pl-9 pr-4 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+             <input 
+               type="text" 
+               placeholder="Search alerts..." 
+               value={searchQuery}
+               onChange={e => setSearchQuery(e.target.value)}
+               className="w-full pl-9 pr-8 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" 
+             />
+             {searchQuery && (
+               <button
+                 type="button"
+                 onClick={() => setSearchQuery('')}
+                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                 title="Clear search"
+               >
+                 <X size={14} />
+               </button>
+             )}
            </div>
         </div>
 
         <div className="divide-y divide-border">
-           {isLoading ? (
-             <div className="p-12 flex justify-center"><div className="animate-spin w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full"></div></div>
-           ) : alerts.length === 0 ? (
-             <div className="p-16 text-center">
-               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                 <CheckCircle2 size={32} />
-               </div>
-               <h3 className="text-lg font-bold text-foreground mb-1">All clear!</h3>
-               <p className="text-muted-foreground">There are no visitors awaiting reassignment right now.</p>
-             </div>
-           ) : (
-             alerts.map(alert => (
+           {(() => {
+             if (isLoading) {
+               return (
+                 <div className="p-12 flex justify-center"><div className="animate-spin w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full"></div></div>
+               );
+             }
+             if (alerts.length === 0) {
+               return (
+                 <div className="p-16 text-center">
+                   <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                     <CheckCircle2 size={32} />
+                   </div>
+                   <h3 className="text-lg font-bold text-foreground mb-1">All clear!</h3>
+                   <p className="text-muted-foreground">There are no visitors awaiting reassignment right now.</p>
+                 </div>
+               );
+             }
+             const q = searchQuery.toLowerCase().trim();
+             const filteredAlerts = alerts.filter(alert => {
+               if (!q) return true;
+               return (
+                 (alert.visitorName && alert.visitorName.toLowerCase().includes(q)) ||
+                 (alert.company && alert.company.toLowerCase().includes(q)) ||
+                 (alert.phone && alert.phone.toLowerCase().includes(q)) ||
+                 (alert.originalHostName && alert.originalHostName.toLowerCase().includes(q)) ||
+                 (alert.notes && alert.notes.toLowerCase().includes(q)) ||
+                 (alert.type && alert.type.toLowerCase().includes(q)) ||
+                 (alert.time && alert.time.toLowerCase().includes(q))
+               );
+             });
+             if (filteredAlerts.length === 0) {
+               return (
+                 <div className="p-16 text-center">
+                   <p className="text-sm font-medium text-muted-foreground">
+                     No alerts found matching "{searchQuery.trim()}".
+                   </p>
+                 </div>
+               );
+             }
+             return filteredAlerts.map(alert => (
                <div key={alert.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-muted/10 transition-colors">
                   <div className="flex items-start gap-4">
                      <div className="w-10 h-10 bg-red-50 text-red-600 border border-red-100 rounded-full flex items-center justify-center shrink-0">
@@ -267,8 +325,8 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
                      )}
                   </div>
                </div>
-             ))
-           )}
+             ));
+           })()}
         </div>
       </div>
 

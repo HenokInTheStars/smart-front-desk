@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
-from sqlalchemy import select
+from sqlalchemy import select, or_, cast, String
 from app.db.session import get_db
 from app.db.models import Appointment, Employee, User
 from app.schemas.appointment import AppointmentCreate, AppointmentOut, AppointmentUpdate
@@ -31,6 +31,7 @@ async def list_appointments(
     skip: int = 0, 
     limit: int = 100,
     host_id: Optional[str] = None,
+    search: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     query = (
@@ -40,6 +41,21 @@ async def list_appointments(
     )
     if host_id is not None:
         query = query.where(Appointment.host_id == uuid.UUID(host_id))
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        from app.db.models import Visitor
+        query = query.join(Appointment.visitor, isouter=True).join(Appointment.host, isouter=True).where(
+            or_(
+                Appointment.notes.ilike(term),
+                cast(Appointment.status, String).ilike(term),
+                Visitor.full_name.ilike(term),
+                Visitor.email.ilike(term),
+                Visitor.company.ilike(term),
+                Visitor.phone.ilike(term),
+                Employee.full_name.ilike(term)
+            )
+        )
 
     result = await db.execute(query.offset(skip).limit(limit))
     apts = result.scalars().all()

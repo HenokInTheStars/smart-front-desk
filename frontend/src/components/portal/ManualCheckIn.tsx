@@ -20,6 +20,9 @@ interface EmployeeItem {
   full_name: string;
   department: string;
   phone?: string;
+  email?: string;
+  title?: string;
+  job_title?: string;
   availability_status?: number;
 }
 
@@ -253,7 +256,12 @@ export default function ManualCheckIn({ currentUser }: ManualCheckInProps) {
   const filteredEmployees = employees.filter(emp => {
     const q = hostSearchQuery.toLowerCase().trim();
     if (!q) return true;
-    return emp.full_name.toLowerCase().includes(q) || emp.department.toLowerCase().includes(q);
+    const name = (emp.full_name || '').toLowerCase();
+    const dept = (emp.department || '').toLowerCase();
+    const email = (emp.email || '').toLowerCase();
+    const phone = (emp.phone || '').toLowerCase();
+    const title = (emp.title || emp.job_title || '').toLowerCase();
+    return name.includes(q) || dept.includes(q) || email.includes(q) || phone.includes(q) || title.includes(q);
   });
 
   const handleCheckIn = async () => {
