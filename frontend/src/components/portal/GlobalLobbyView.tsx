@@ -174,7 +174,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
                <h3 className="text-sm text-foreground uppercase tracking-widest font-bold">Live Security & Visitor Stream</h3>
              </div>
              <div className="flex items-center gap-4">
-               <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Real-time Feed</span>
+               <span className="text-xs text-muted-foreground">Real-time Feed</span>
              </div>
           </div>
 
@@ -235,8 +235,8 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
         {/* Right Col: Upcoming Reservations (4 / 12 columns) */}
         <div className="col-span-12 xl:col-span-4 bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col h-[600px]">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/50">
-            <h3 className="font-bold text-foreground flex items-center gap-2">
-              <Clock size={16} className="text-muted-foreground" /> Upcoming Reservations
+            <h3 className="font-bold text-foreground">
+              Upcoming Reservations
             </h3>
           </div>
           <div className="p-0 overflow-y-auto flex-1">

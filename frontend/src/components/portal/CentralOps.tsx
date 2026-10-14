@@ -5,7 +5,7 @@ import {
   Activity, Server, Shield, 
   CheckCircle2, Info, AlertTriangle, ChevronRight, ChevronLeft, 
   Search, Calendar, Users, 
-  ShieldCheck, ArrowUpRight, Cpu
+  ArrowUpRight
 } from 'lucide-react';
 import GlobalLobbyView from './GlobalLobbyView';
 import { TablePagination } from '../ui/TablePagination';
@@ -22,7 +22,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
   const [userActivities, setUserActivities] = React.useState<Record<string, any[]>>({});
   const [loadingActivity, setLoadingActivity] = React.useState<Record<string, boolean>>({});
   const [userTimelineTab, setUserTimelineTab] = React.useState<'appointments' | 'system'>('appointments');
-  const [mainTab, setMainTab] = React.useState<'lobby' | 'host_audits' | 'infra_logs'>('lobby');
+  const [mainTab, setMainTab] = React.useState<'lobby' | 'host_audits'>('lobby');
   const [mainPageSize, setMainPageSize] = React.useState(10);
   const [mainCurrentPage, setMainCurrentPage] = React.useState(1);
   const [activityPageSize, setActivityPageSize] = React.useState(5);
@@ -98,33 +98,10 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
 
         {/* Command Center Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-8 py-5 border-b border-border/50 bg-card z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
-               <ShieldCheck size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-foreground">Security Operations Center</h2>
-              <p className="text-[12px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">Physical Access & System Telemetry</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 mt-4 sm:mt-0">
-             <div className="flex items-center gap-3 px-4 py-2 bg-muted/40 border border-border/50 rounded-xl">
-               <div className="flex flex-col">
-                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Database</span>
-                 <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
-                 </span>
-               </div>
-               <div className="w-px h-6 bg-border/50 mx-2"></div>
-               <div className="flex flex-col">
-                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Active Nodes</span>
-                 <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> 3 / 3
-                 </span>
-               </div>
-             </div>
+        <div className="flex items-center justify-between px-8 py-5 border-b border-border/50 bg-card z-10">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Security Operations Center</h2>
+            <p className="text-[12px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">Physical Access & System Telemetry</p>
           </div>
         </div>
         
@@ -138,7 +115,6 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                onClick={() => setMainTab('lobby')}
                className={`flex items-center gap-2 px-4 py-3 transition-all duration-200 border-b-2 whitespace-nowrap ${mainTab === 'lobby' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground font-medium hover:border-border'}`}
              >
-               <Activity size={16} className={mainTab === 'lobby' ? 'text-primary' : 'text-muted-foreground'} />
                <span className="text-[13px]">Lobby & Perimeter</span>
              </button>
 
@@ -146,18 +122,8 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                onClick={() => setMainTab('host_audits')}
                className={`flex items-center gap-2 px-4 py-3 transition-all duration-200 border-b-2 whitespace-nowrap ${mainTab === 'host_audits' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground font-medium hover:border-border'}`}
              >
-               <Users size={16} className={mainTab === 'host_audits' ? 'text-primary' : 'text-muted-foreground'} />
                <span className="text-[13px]">Host Escort Audits</span>
              </button>
-
-             <button 
-               onClick={() => setMainTab('infra_logs')}
-               className={`flex items-center gap-2 px-4 py-3 transition-all duration-200 border-b-2 whitespace-nowrap ${mainTab === 'infra_logs' ? 'border-primary text-primary font-bold' : 'border-transparent text-muted-foreground hover:text-foreground font-medium hover:border-border'}`}
-             >
-               <Cpu size={16} className={mainTab === 'infra_logs' ? 'text-primary' : 'text-muted-foreground'} />
-               <span className="text-[13px]">Infrastructure Logs</span>
-             </button>
-
           </div>
           
           {/* Main Content Area */}
@@ -171,19 +137,17 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                </div>
              )}
 
-             {(mainTab === 'host_audits' || mainTab === 'infra_logs') && (
+             {mainTab === 'host_audits' && (
                <div className="flex flex-col h-full animate-in fade-in duration-300">
                  
                  {/* Table Header Controls */}
                  <div className="px-8 py-5 border-b border-border/40 flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-foreground">
-                        {mainTab === 'host_audits' ? 'Host Actions & Approvals' : 'Automated System Events'}
+                        Host Actions & Approvals
                       </h3>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {mainTab === 'host_audits' 
-                          ? 'Audit trail of host actions, including guest admissions and config changes.' 
-                          : 'Raw telemetry of background processes, health checks, and sync events.'}
+                        Audit trail of host actions, including guest admissions and config changes.
                       </p>
                     </div>
                     <div className="relative">
@@ -198,15 +162,15 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
 
                  {/* Minimalist Data Grid */}
                  <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
-                    {logs.filter(l => mainTab === 'host_audits' ? l.user_id : !l.user_id).length === 0 && (
+                    {logs.filter(l => l.user_id).length === 0 && (
                       <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
                         <Server size={32} className="opacity-20" />
-                        <p className="text-sm font-medium">No telemetry found for this filter.</p>
+                        <p className="text-sm font-medium">No host escort audits found.</p>
                       </div>
                     )}
                     
                     {(() => {
-                      const filteredLogs = logs.filter(l => mainTab === 'host_audits' ? l.user_id : !l.user_id);
+                      const filteredLogs = logs.filter(l => l.user_id);
                       if (filteredLogs.length === 0) return null;
                       const paginatedLogs = filteredLogs.slice((mainCurrentPage - 1) * mainPageSize, mainCurrentPage * mainPageSize);
                       return (

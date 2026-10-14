@@ -60,8 +60,7 @@ export default function NotificationFeed({ currentUser, isPanel = false }: Notif
             </p>
           </div>
           <div className="flex items-center gap-2">
-             <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
-               <Bell size={14} />
+             <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full">
                {notifications.filter(n => n.isNew).length} New Alerts
              </span>
           </div>

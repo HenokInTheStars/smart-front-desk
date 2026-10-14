@@ -37,11 +37,22 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
             const isBusyWait = apt.notes && apt.notes.includes('[HOST_BUSY_WAIT]');
             const isUnavailableWait = apt.notes && apt.notes.includes('[HOST_UNAVAILABLE_WAIT]');
             const isDelivery = apt.notes && apt.notes.includes('Purpose: Delivery');
+            const isHostCancelled = apt.notes && apt.notes.includes('[HOST_CANCELLED]');
             
             let type = 'Reassignment';
-            if (isBusyWait) type = 'Waiting (Host Busy)';
-            if (isUnavailableWait) type = 'Waiting (Host Unavailable)';
-            if (isDelivery) type = 'Delivery Arrived';
+            if (isHostCancelled) type = 'Host Cancelled';
+            else if (isBusyWait) type = 'Waiting (Host Busy)';
+            else if (isUnavailableWait) type = 'Waiting (Host Unavailable)';
+            else if (isDelivery) type = 'Delivery Arrived';
+
+            const cleanNotes = apt.notes 
+              ? apt.notes
+                  .replace('[HOST_CANCELLED]', '')
+                  .replace('[HOST_BUSY_WAIT]', '')
+                  .replace('[HOST_UNAVAILABLE_WAIT]', '')
+                  .replace('Purpose: Delivery\nNotes: ', '')
+                  .trim() 
+              : 'No notes provided';
 
             return {
               id: apt.id,
@@ -49,9 +60,9 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
               company: apt.visitor?.company || 'Unknown',
               originalHostName: apt.host?.full_name || 'Unknown',
               time: new Date(apt.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              notes: apt.notes ? apt.notes.replace('[HOST_BUSY_WAIT]', '').replace('[HOST_UNAVAILABLE_WAIT]', '').replace('Purpose: Delivery\nNotes: ', '').trim() : 'No notes provided',
+              notes: cleanNotes,
               type: type,
-              needsReassignment: apt.status === 'NEEDS_REASSIGNMENT',
+              needsReassignment: apt.status === 'NEEDS_REASSIGNMENT' || isHostCancelled,
               phone: apt.visitor?.phone
             };
           });
@@ -88,7 +99,7 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const dismissAlert = async (id: string) => {
+  const dismissAlert = async (id: string, isDelivery: boolean = false) => {
     try {
       const token = sessionStorage.getItem('access_token');
       if (!token) return;
@@ -98,7 +109,7 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: 'COMPLETED' })
+        body: JSON.stringify({ status: isDelivery ? 'COMPLETED' : 'CANCELLED' })
       });
       setAlerts(prev => prev.filter(a => a.id !== id));
     } catch(e) {
@@ -142,8 +153,8 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
             Manage visitors whose original hosts are unavailable or requested reassignment.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-2 rounded-xl font-bold text-sm border border-red-200">
-           <BellRing size={16} /> {alerts.length} Active Alerts
+        <div className="bg-red-50 text-red-700 px-4 py-2 rounded-xl font-bold text-sm border border-red-200">
+           {alerts.length} Active Alerts
         </div>
       </div>
 
@@ -189,12 +200,14 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
                        <p className="text-xs text-muted-foreground mt-1 max-w-lg">
                          {alert.type === 'Delivery Arrived' ? (
                            <>Delivery for <span className="font-semibold text-foreground">{alert.notes}</span>.</>
+                         ) : alert.type === 'Host Cancelled' ? (
+                           <>Cancelled by <span className="font-semibold text-foreground">{alert.originalHostName}</span>. Reason: <span className="font-medium text-foreground">"{alert.notes}"</span></>
                          ) : alert.needsReassignment ? (
-                           <>Rejected by <span className="font-semibold text-foreground">{alert.originalHostName}</span>.</>
+                           <>Cancelled by <span className="font-semibold text-foreground">{alert.originalHostName}</span>.</>
                          ) : (
                            <>Waiting for <span className="font-semibold text-foreground">{alert.originalHostName}</span> (Busy).</>
                          )}
-                         {alert.type !== 'Delivery Arrived' && alert.notes && (
+                         {alert.type !== 'Delivery Arrived' && alert.type !== 'Host Cancelled' && alert.notes && (
                            <span className="ml-1 text-muted-foreground/80">"{alert.notes}"</span>
                          )}
                        </p>
@@ -203,7 +216,7 @@ export default function ReassignGuests({ currentUser }: ReassignGuestsProps) {
                   <div className="flex flex-col gap-2 shrink-0">
                      {alert.type === 'Delivery Arrived' ? (
                         <button 
-                          onClick={() => dismissAlert(alert.id)}
+                          onClick={() => dismissAlert(alert.id, true)}
                           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] text-center"
                         >
                           Acknowledge

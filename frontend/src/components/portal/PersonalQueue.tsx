@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TablePagination } from '../ui/TablePagination';
-import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus } from 'lucide-react';
+import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus, X } from 'lucide-react';
 import PreRegisterForm from './PreRegisterForm';
 
 interface PersonalQueueProps {
@@ -21,6 +21,10 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
   const [showPreRegister, setShowPreRegister] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [cancellingVisitor, setCancellingVisitor] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+  const [cancelError, setCancelError] = useState('');
   useEffect(() => {
     const fetchMyQueue = async () => {
       try {
@@ -62,6 +66,58 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
 
     fetchMyQueue();
   }, [currentUser]);
+
+  const handleOpenCancelModal = (e: React.MouseEvent, visitor: any) => {
+    e.stopPropagation();
+    setCancellingVisitor(visitor);
+    setCancelReason('');
+    setCancelError('');
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancellingVisitor) return;
+    if (!cancelReason.trim()) {
+      setCancelError('Please enter a reason for cancelling this appointment.');
+      return;
+    }
+
+    setIsSubmittingCancel(true);
+    setCancelError('');
+
+    try {
+      const token = sessionStorage.getItem('access_token');
+      if (!token) return;
+
+      const fullNote = `[HOST_CANCELLED] ${cancelReason.trim()}`;
+      
+      const res = await fetch(`http://localhost:8000/appointments/${cancellingVisitor.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'NEEDS_REASSIGNMENT',
+          notes: fullNote
+        })
+      });
+
+      if (res.ok) {
+        setMyVisitors(prev => prev.filter(v => v.id !== cancellingVisitor.id));
+        setToastMsg(`Appointment for ${cancellingVisitor.name} cancelled and sent to Reassign Guests.`);
+        setTimeout(() => setToastMsg(null), 6000);
+        setCancellingVisitor(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setCancelError(err.detail || 'Failed to cancel appointment. Please try again.');
+      }
+    } catch (e) {
+      console.error(e);
+      setCancelError('Network error while cancelling appointment.');
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
 
   const moveStatus = async (id: string, newStatus: string) => {
     setMyVisitors(prev => prev.map(v => v.id === id ? { ...v, status: newStatus } : v));
@@ -132,6 +188,93 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         </div>
       )}
 
+      {/* Cancellation & Reassignment Modal */}
+      {cancellingVisitor && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-3xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-border bg-muted/10 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-foreground">Cancel Appointment</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Guest will be routed to Reception in Reassign Guests.
+                </p>
+              </div>
+              <button 
+                onClick={() => setCancellingVisitor(null)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Visitor Summary */}
+              <div className="bg-muted/30 border border-border/60 rounded-2xl p-4 text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Visitor:</span>
+                  <span className="font-bold text-foreground">{cancellingVisitor.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Company / Purpose:</span>
+                  <span className="font-medium text-foreground">{cancellingVisitor.company}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Scheduled Time:</span>
+                  <span className="font-medium text-foreground">{cancellingVisitor.time}</span>
+                </div>
+              </div>
+
+              {/* Cancellation Reason */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-foreground">
+                  Reason for Cancellation <span className="text-destructive">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => {
+                    setCancelReason(e.target.value);
+                    if (cancelError) setCancelError('');
+                  }}
+                  placeholder="e.g., Called into emergency meeting. Please reassign to an available colleague."
+                  className={`w-full bg-muted/20 border rounded-xl p-3 text-xs focus:ring-2 focus:ring-primary focus:bg-card outline-none transition-all resize-none text-foreground ${
+                    cancelError ? 'border-destructive ring-1 ring-destructive/40' : 'border-border'
+                  }`}
+                />
+                {cancelError && (
+                  <p className="text-[11px] text-destructive font-medium">{cancelError}</p>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  This explanation will be immediately visible to Reception on the Reassign Guests dashboard.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 px-6 border-t border-border bg-muted/10 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setCancellingVisitor(null)}
+                disabled={isSubmittingCancel}
+                className="px-4 py-2 text-xs font-bold rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                Keep Appointment
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                disabled={isSubmittingCancel || !cancelReason.trim()}
+                className="px-5 py-2 text-xs font-bold rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-1.5"
+              >
+                {isSubmittingCancel ? 'Cancelling...' : 'Confirm & Reassign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
 
       {/* Tabs and Actions */}
@@ -139,21 +282,21 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         <div className="flex overflow-x-auto">
           <button 
             onClick={() => setActiveTab('live')}
-          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'live' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
-        >
-          <Users size={18} /> Live Assigned Queue ({waitingCount + inMeetingCount})
-        </button>
-        <button 
-          onClick={() => setActiveTab('upcoming')}
-          className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'upcoming' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
-        >
-          <Calendar size={18} /> Upcoming & Future Reservations ({prebookedCount})
-        </button>
-        <button 
-          onClick={() => setActiveTab('completed')}
+            className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'live' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
+          >
+            Live Assigned Queue ({waitingCount + inMeetingCount})
+          </button>
+          <button 
+            onClick={() => setActiveTab('upcoming')}
+            className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'upcoming' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
+          >
+            Upcoming & Future Reservations ({prebookedCount})
+          </button>
+          <button 
+            onClick={() => setActiveTab('completed')}
             className={`px-6 py-4 font-bold flex items-center gap-2 whitespace-nowrap transition-colors ${activeTab === 'completed' ? 'border-b-2 border-blue-600 text-primary' : 'text-muted-foreground hover:text-foreground/90'}`}
           >
-            <Clock size={18} /> Completed Past Visits ({completedCount})
+            Completed Past Visits ({completedCount})
           </button>
         </div>
         <div className="pb-4 lg:pb-0">
@@ -290,10 +433,11 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                                       <MessageSquare size={12} /> Notify (5m)
                                     </button>
                                     <button 
-                                      onClick={(e) => { e.stopPropagation(); moveStatus(v.id, 'needs_reassignment'); }}
-                                      className="px-2.5 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap"
+                                      onClick={(e) => handleOpenCancelModal(e, v)}
+                                      className="px-2.5 py-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-lg transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.02)] whitespace-nowrap"
+                                      title="Cancel appointment and route visitor to reassignment"
                                     >
-                                      <XCircle size={12} /> Not Mine
+                                      Cancel
                                     </button>
                                     <button 
                                       onClick={(e) => { 

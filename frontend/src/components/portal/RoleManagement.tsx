@@ -216,8 +216,7 @@ export default function RoleManagement({ currentUser }: RoleManagementProps) {
 
       {(isCreatingUser || editingUser) && (
         <div className="bg-card border border-border p-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.03)] animate-in slide-in-from-top-4 duration-300">
-          <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-            <Shield size={18} className="text-primary" /> 
+          <h2 className="text-lg font-bold text-foreground mb-4">
             {editingUser ? 'Edit User Permissions' : 'New Account Setup'}
           </h2>
           

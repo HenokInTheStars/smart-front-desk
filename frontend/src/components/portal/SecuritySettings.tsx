@@ -159,8 +159,8 @@ export default function SecuritySettings({ currentUser }: SecuritySettingsProps)
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             {/* Profile Information */}
             <div className="bg-card border border-border p-6 rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 border-b border-border/50 pb-2 flex items-center gap-2">
-                 <Shield size={16} className="text-primary" /> Profile Information
+               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 border-b border-border/50 pb-2">
+                 Profile Information
                </h2>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                  <div>
@@ -236,8 +236,8 @@ export default function SecuritySettings({ currentUser }: SecuritySettingsProps)
                </div>
                
                <div className="pt-5 border-t border-border/50">
-                 <p className="text-xs font-bold text-foreground/80 mb-3 flex items-center gap-2">
-                   <CheckCircle2 size={14} className="text-emerald-500" /> Active Permissions
+                 <p className="text-xs font-bold text-foreground/80 mb-3">
+                   Active Permissions
                  </p>
                  <div className="flex flex-wrap gap-2">
                    {currentUser?.permissions?.filter((p: string) => ALL_PERMISSIONS.some(ap => ap.id === p)).map((perm: string) => (
@@ -254,8 +254,8 @@ export default function SecuritySettings({ currentUser }: SecuritySettingsProps)
 
             {/* Change Password */}
             <div className="bg-card border border-border p-6 rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 border-b border-border/50 pb-2 flex items-center gap-2">
-                 <Key size={16} className="text-primary" /> Update Password
+               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-5 border-b border-border/50 pb-2">
+                 Update Password
                </h2>
                
                <form onSubmit={handleUpdatePassword} className="space-y-4">

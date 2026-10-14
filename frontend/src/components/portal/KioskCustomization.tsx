@@ -116,8 +116,8 @@ export default function KioskCustomization({ currentUser }: KioskCustomizationPr
         {/* Left: Slide Editor */}
         <div className="flex-1 space-y-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
-              <Settings size={20} className="text-primary" /> Slide Sequence
+            <h3 className="font-bold text-lg text-foreground">
+              Slide Sequence
             </h3>
             <button onClick={addSlide} className="text-sm bg-muted/50 hover:bg-muted text-foreground font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
               <Plus size={16} /> Add Slide

@@ -292,8 +292,7 @@ export default function ManageAvailability({ currentUser }: ManageAvailabilityPr
              
              {/* OOO Setup Strip */}
              <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-muted/10 gap-4">
-               <div className="flex items-center gap-2">
-                 <Plane size={16} className="text-muted-foreground" />
+               <div>
                  <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">Out of Office Setup</h2>
                </div>
                

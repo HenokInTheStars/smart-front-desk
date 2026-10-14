@@ -66,10 +66,9 @@ export default function ManageDirectory({ currentUser }: ManageDirectoryProps) {
 
       <div className="bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
-          <div className="flex items-center gap-2 text-foreground/90 font-bold">
-             <Users size={18} className="text-primary" />
-             Active Directory ({employees.length})
-           </div>
+          <div className="text-foreground/90 font-bold">
+            Active Directory ({employees.length})
+          </div>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70" />
             <input 
