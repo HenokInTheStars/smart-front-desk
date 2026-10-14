@@ -147,6 +147,20 @@ async def get_audit_logs(
     res = await db.execute(query.limit(50))
     logs = res.scalars().all()
     
+    def format_friendly_detail(action: str, detail: Optional[str]) -> Optional[str]:
+        if not detail:
+            return detail
+        trimmed = detail.strip()
+        if trimmed.startswith("{"):
+            try:
+                import json
+                data = json.loads(trimmed)
+                if isinstance(data, dict) and "prompt" in data:
+                    return f'Asked AI Assistant: "{data["prompt"]}"'
+            except Exception:
+                pass
+        return detail
+
     out = []
     for log in logs:
         # Determine log type based on action
@@ -165,6 +179,7 @@ async def get_audit_logs(
             "id": str(log.id),
             "title": log.action,
             "detail": log.detail,
+            "friendly_detail": format_friendly_detail(log.action, log.detail),
             "time": log.created_at.isoformat(),
             "meta": user_display,
             "type": log_type,
@@ -195,10 +210,19 @@ async def get_user_activity(request: Request, user_id: str, db: AsyncSession = D
     # 1. Fetch Audit Logs
     audit_res = await db.execute(select(AuditLog).where(AuditLog.user_id == uuid.UUID(user_id)))
     for al in audit_res.scalars().all():
+        detail_text = al.detail
+        if detail_text and detail_text.strip().startswith("{"):
+            try:
+                import json
+                parsed = json.loads(detail_text)
+                if isinstance(parsed, dict) and "prompt" in parsed:
+                    detail_text = f'Asked AI Assistant: "{parsed["prompt"]}"'
+            except Exception:
+                pass
         activity.append({
             "time": al.created_at.isoformat(),
             "action": al.action,
-            "detail": al.detail
+            "detail": detail_text
         })
         
     # 2. Fetch Appointments (if user is a host)

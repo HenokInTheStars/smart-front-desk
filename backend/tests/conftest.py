@@ -67,6 +67,12 @@ def pytest_sessionstart(session):
                 )
             print(f"\n[Test Guard] Confirmed live test database: {connected_db}")
         
+        # Clean transient test tables to ensure deterministic test runs
+        await db.execute(text("DELETE FROM audit_logs;"))
+        await db.execute(text("DELETE FROM appointments;"))
+        await db.execute(text("DELETE FROM visitors;"))
+        await db.commit()
+        
         # Seed default users and hosts on the isolated test database
         from app.db.seed_defaults import seed_all_default_users_and_hosts
         await seed_all_default_users_and_hosts()
