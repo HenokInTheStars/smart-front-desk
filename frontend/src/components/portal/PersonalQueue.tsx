@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { TablePagination } from '../ui/TablePagination';
-import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus, X } from 'lucide-react';
+import { Users, Clock, Calendar, CheckCircle2, XCircle, ChevronRight, User, Phone, Mail, MessageSquare, UserPlus, X, Package } from 'lucide-react';
 import PreRegisterForm from './PreRegisterForm';
 
 interface PersonalQueueProps {
@@ -13,6 +13,7 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
   const [myVisitors, setMyVisitors] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'completed'>('live');
+  const [showPackageModal, setShowPackageModal] = useState(false);
   const [sortOrder, setSortOrder] = useState<'time' | 'name'>('time');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showAlert, setShowAlert] = useState(true);
@@ -43,17 +44,23 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
           const raw = await res.json();
           const appointments = raw.data || [];
           
-          const mapped = appointments.map((apt: any) => ({
-            id: apt.id,
-            name: apt.visitor?.full_name || 'Unknown',
-            company: apt.visitor?.company || 'N/A',
-            email: apt.visitor?.email || 'N/A',
-            phone: apt.visitor?.phone || 'N/A',
-            status: apt.status.toLowerCase(), // maps CHECKED_IN to checked_in, SCHEDULED to scheduled
-            time: new Date(apt.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            rawTime: apt.scheduled_time,
-            purpose: apt.notes || 'Meeting Notes: backend'
-          }));
+          const mapped = appointments.map((apt: any) => {
+            const isDel = (apt.notes && apt.notes.toLowerCase().includes('delivery')) ||
+              (apt.visitor?.company && apt.visitor.company.toLowerCase().includes('delivery')) ||
+              (apt.purpose && apt.purpose.toLowerCase().includes('delivery'));
+            return {
+              id: apt.id,
+              name: apt.visitor?.full_name || 'Unknown',
+              company: apt.visitor?.company || 'N/A',
+              email: apt.visitor?.email || 'N/A',
+              phone: apt.visitor?.phone || 'N/A',
+              status: apt.status.toLowerCase(),
+              time: new Date(apt.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              rawTime: apt.scheduled_time,
+              purpose: apt.notes || 'Meeting Notes: backend',
+              isDelivery: isDel
+            };
+          });
           
           setMyVisitors(mapped);
         }
@@ -163,10 +170,22 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
     }
   };
 
-  const inMeetingCount = myVisitors.filter(v => v.status === 'in_meeting').length;
-  const waitingCount = myVisitors.filter(v => v.status === 'checked_in' || v.status === 'waiting').length;
-  const completedCount = myVisitors.filter(v => v.status === 'completed').length;
-  const prebookedCount = myVisitors.filter(v => v.status === 'expected' || v.status === 'scheduled').length;
+  const handleMarkPackagePickedUp = async (id: string) => {
+    try {
+      await moveStatus(id, 'completed');
+      setToastMsg('Package marked as picked up from Reception.');
+      setTimeout(() => setToastMsg(null), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const pendingPackages = myVisitors.filter(v => v.isDelivery && (v.status === 'checked_in' || v.status === 'waiting'));
+  const allPackages = myVisitors.filter(v => v.isDelivery);
+  const inMeetingCount = myVisitors.filter(v => !v.isDelivery && v.status === 'in_meeting').length;
+  const waitingCount = myVisitors.filter(v => !v.isDelivery && (v.status === 'checked_in' || v.status === 'waiting')).length;
+  const completedCount = myVisitors.filter(v => !v.isDelivery && v.status === 'completed').length;
+  const prebookedCount = myVisitors.filter(v => !v.isDelivery && (v.status === 'expected' || v.status === 'scheduled')).length;
 
   return (
     <div className="bg-card min-h-[calc(100vh-80px)] -mt-6 -mx-6 p-8 relative animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -184,6 +203,124 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-border shadow-xl rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative animate-in zoom-in-95 duration-200">
             <PreRegisterForm currentUser={currentUser} onClose={() => setShowPreRegister(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Packages & Deliveries Modal */}
+      {showPackageModal && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-3xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-border bg-muted/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                    Packages & Deliveries
+                    {pendingPackages.length > 0 && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white">
+                        {pendingPackages.length} awaiting pickup
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Parcels and items dropped off for you at the front desk.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowPackageModal(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto flex-1 space-y-3">
+              {allPackages.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <div className="w-14 h-14 bg-muted/60 rounded-full flex items-center justify-center text-muted-foreground mb-3">
+                    <Package size={22} className="opacity-40" />
+                  </div>
+                  <p className="text-foreground font-bold text-sm">No packages on file</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                    When a courier delivers a parcel for you at reception, it will appear here for pickup confirmation.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {allPackages.map(pkg => {
+                    const isPending = pkg.status !== 'completed';
+                    return (
+                      <div 
+                        key={pkg.id}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          isPending 
+                            ? 'bg-amber-500/5 border-amber-500/30' 
+                            : 'bg-muted/20 border-border/60 opacity-80'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h4 className="font-bold text-sm text-foreground">{pkg.name}</h4>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                isPending 
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300' 
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
+                              }`}>
+                                {isPending ? 'Ready at Desk' : 'Picked Up'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Carrier: <span className="font-medium text-foreground">{pkg.company !== 'N/A' ? pkg.company : 'Courier Drop-off'}</span>
+                              <span className="mx-1.5">&bull;</span>
+                              Time: <span className="font-medium text-foreground">{pkg.time}</span>
+                            </p>
+                            {pkg.purpose && (
+                              <p className="text-[11px] text-muted-foreground/90 mt-1 line-clamp-2">
+                                {pkg.purpose}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="shrink-0 pt-0.5">
+                            {isPending ? (
+                              <button 
+                                onClick={() => handleMarkPackagePickedUp(pkg.id)}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+                              >
+                                <CheckCircle2 size={13} />
+                                I Picked This Up
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground font-semibold px-2.5 py-1 rounded-lg bg-muted/40">
+                                Collected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-border bg-muted/10 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Front Desk keeps parcels until you pick them up.</span>
+              <button
+                onClick={() => setShowPackageModal(false)}
+                className="px-4 py-1.5 bg-muted hover:bg-muted/80 text-foreground font-bold rounded-xl transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -277,6 +414,43 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
 
 
 
+      {/* Package Pickup Notification Banner */}
+      {pendingPackages.length > 0 && (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-in fade-in duration-300">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+              <Package size={20} />
+            </div>
+            <div>
+              <h4 className="font-bold text-foreground text-sm flex items-center gap-2">
+                {pendingPackages.length === 1 ? '1 Package Waiting at Front Desk' : `${pendingPackages.length} Packages Waiting at Front Desk`}
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {pendingPackages.map(p => `${p.name} (${p.company !== 'N/A' ? p.company : 'Courier'})`).join(', ')} arrived at reception for you.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setShowPackageModal(true)}
+              className="px-3.5 py-1.5 bg-card hover:bg-muted text-foreground text-xs font-bold rounded-xl transition-colors border border-border shadow-xs"
+            >
+              View Details
+            </button>
+            {pendingPackages.length === 1 && (
+              <button
+                onClick={() => handleMarkPackagePickedUp(pendingPackages[0].id)}
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+              >
+                <CheckCircle2 size={13} />
+                I Picked This Up
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tabs and Actions */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between border-b border-border mb-6 gap-4">
         <div className="flex overflow-x-auto">
@@ -299,10 +473,31 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
             Completed Past Visits ({completedCount})
           </button>
         </div>
-        <div className="pb-4 lg:pb-0">
+        <div className="pb-4 lg:pb-0 flex items-center gap-2.5">
+          {/* Small Place: Deliveries Button */}
+          <button 
+            onClick={() => setShowPackageModal(true)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 shadow-xs ${
+              pendingPackages.length > 0 
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20' 
+                : 'bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+            title="View packages dropped off at reception"
+          >
+            <Package size={15} className={pendingPackages.length > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'} />
+            <span>Deliveries</span>
+            {pendingPackages.length > 0 ? (
+              <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">
+                {pendingPackages.length}
+              </span>
+            ) : allPackages.length > 0 ? (
+              <span className="text-[10px] text-muted-foreground font-mono">({allPackages.length})</span>
+            ) : null}
+          </button>
+
           <button 
             onClick={() => setShowPreRegister(true)} 
-            className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:opacity-90 transition-opacity flex items-center gap-2"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs sm:text-sm font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:opacity-90 transition-opacity flex items-center gap-2"
           >
              <UserPlus size={16} /> Pre-Register Guest
           </button>
@@ -313,11 +508,11 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
       {(() => {
         let displayList = myVisitors;
         if (activeTab === 'live') {
-          displayList = myVisitors.filter(v => v.status === 'checked_in' || v.status === 'waiting' || v.status === 'in_meeting');
+          displayList = myVisitors.filter(v => !v.isDelivery && (v.status === 'checked_in' || v.status === 'waiting' || v.status === 'in_meeting'));
         } else if (activeTab === 'upcoming') {
-          displayList = myVisitors.filter(v => v.status === 'expected' || v.status === 'scheduled');
+          displayList = myVisitors.filter(v => !v.isDelivery && (v.status === 'expected' || v.status === 'scheduled'));
         } else if (activeTab === 'completed') {
-          displayList = myVisitors.filter(v => v.status === 'completed');
+          displayList = myVisitors.filter(v => !v.isDelivery && v.status === 'completed');
         }
         
         displayList = [...displayList].sort((a, b) => {
@@ -386,17 +581,31 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                             onClick={() => setExpandedCardId(expandedCardId === v.id ? null : v.id)}
                           >
                             <td className="p-4 pl-6 align-middle w-0 whitespace-nowrap">
-                              {v.status === 'in_meeting' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-primary/10 text-blue-700 border border-blue-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Meeting</span>
-                              )}
-                              {(v.status === 'checked_in' || v.status === 'waiting') && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Waiting</span>
-                              )}
-                              {v.status === 'scheduled' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-slate-100 text-foreground/90 border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Scheduled</span>
-                              )}
-                              {v.status === 'completed' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Completed</span>
+                              {v.isDelivery ? (
+                                v.status === 'completed' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                                    <Package size={11} /> Picked Up
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)] animate-pulse">
+                                    <Package size={11} className="text-amber-600" /> At Front Desk
+                                  </span>
+                                )
+                              ) : (
+                                <>
+                                  {v.status === 'in_meeting' && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-primary/10 text-blue-700 border border-blue-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Meeting</span>
+                                  )}
+                                  {(v.status === 'checked_in' || v.status === 'waiting') && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Waiting</span>
+                                  )}
+                                  {v.status === 'scheduled' && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-slate-100 text-foreground/90 border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Scheduled</span>
+                                  )}
+                                  {v.status === 'completed' && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider font-bold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">Completed</span>
+                                  )}
+                                </>
                               )}
                             </td>
                             <td className="p-4 align-middle">
@@ -408,7 +617,21 @@ export default function PersonalQueue({ currentUser }: PersonalQueueProps) {
                             </td>
                             <td className="p-4 pr-6 align-middle text-right">
                               <div className="flex items-center justify-end gap-2">
-                                {activeTab === 'upcoming' ? (
+                                {v.isDelivery ? (
+                                  v.status !== 'completed' ? (
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMarkPackagePickedUp(v.id);
+                                      }}
+                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-colors whitespace-nowrap"
+                                    >
+                                      <CheckCircle2 size={13} /> I Picked This Up
+                                    </button>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground font-semibold px-2 py-1 rounded bg-muted/40">Picked Up</span>
+                                  )
+                                ) : activeTab === 'upcoming' ? (
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); setExpandedCardId(expandedCardId === v.id ? null : v.id); }}
                                     className="px-2.5 py-1.5 bg-card border border-border hover:bg-muted/30 text-foreground/90 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"

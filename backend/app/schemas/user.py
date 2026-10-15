@@ -4,49 +4,38 @@ from uuid import UUID
 
 RoleEnum = Literal["SUPER_ADMIN", "ADMIN", "RECEPTION", "HOST", "OTHER"]
 
-# Standard System Permissions Catalog
+# Standard System Permissions Catalog (Active Core Capabilities)
 ALL_SYSTEM_PERMISSIONS = [
-    {"key": "1_central_ops", "label": "Central Operations & Command", "category": "System", "description": "Full oversight of configuration, settings, and infrastructure health."},
-    {"key": "2_live_stream", "label": "Live Visitor Stream", "category": "System", "description": "Access to unfiltered, raw data stream of all check-ins/outs."},
-    {"key": "3_evacuation_roster", "label": "Evacuation Roster", "category": "Security", "description": "Instant access to master list of everyone inside for emergencies."},
-    {"key": "4_manage_directory", "label": "Staff & Host Directory Management", "category": "Administration", "description": "Manually add/edit/remove employee profiles or configure sync."},
-    {"key": "5_compliance_reports", "label": "Compliance & Reports", "category": "Administration", "description": "Generate historical reports, manage data retention and security."},
-    {"key": "6_manage_roles", "label": "Role & Permission Assignment", "category": "Administration", "description": "Grant granular permissions to other users."},
-    {"key": "7_global_lobby_view", "label": "Live Lobby View", "category": "Reception", "description": "Global dashboard showing all expected and current visitors."},
-    {"key": "8_manual_override", "label": "Manual Overrides & Check-In", "category": "Reception", "description": "Bypass kiosk to manually check in a guest or verify ID."},
-    {"key": "9_manage_badges", "label": "Badge Printing Management", "category": "Reception", "description": "Oversee thermal printers and re-print badges."},
-    {"key": "10_manage_checkout", "label": "Checkout Management", "category": "Reception", "description": "Ensure guests are checked out upon departure."},
-    {"key": "11_monitor_watchlists", "label": "Watchlist & Blocklist Monitoring", "category": "Security", "description": "Receive silent alerts for flagged individuals at the kiosk."},
-    {"key": "12_host_followup", "label": "Host Follow-up", "category": "Reception", "description": "Ping/call unresponsive hosts for waiting visitors."},
-    {"key": "13_personal_queue", "label": "Personal Visitor Queue", "category": "Host", "description": "Private dashboard for personal guests and active meetings."},
-    {"key": "14_pre_register", "label": "Guest Pre-Registration", "category": "Host", "description": "Pre-book a guest for a future date (sends QR code)."},
-    {"key": "15_manage_availability", "label": "Schedule & Availability Management", "category": "Host", "description": "Set real-time status updates (Available, In Meeting, OOO)."},
-    {"key": "16_arrival_alerts", "label": "Real-Time Arrival Alerts", "category": "Host", "description": "Receive instant notifications upon guest arrival."},
-    {"key": "17_kiosk_communication", "label": "Two-Way Kiosk Communication", "category": "Host", "description": "Send quick replies to the kiosk."},
-    {"key": "18_meeting_status", "label": "Meeting Status Updates", "category": "Host", "description": "Manually progress visitor status (Waiting -> In Meeting -> Completed)."},
-    {"key": "20_kiosk_customization", "label": "Kiosk Branding & Customization", "category": "Administration", "description": "Change kiosk background images and text."},
-    {"key": "22_ai_assistant", "label": "AI Executive Assistant", "category": "System", "description": "Interactive analytical AI assistant for real-time visitor insights and charts."}
+    {"key": "1_central_ops", "label": "Central Operations & Live Lobby", "category": "Operations", "description": "Full oversight of configuration, settings, lobby queue, and infrastructure health."},
+    {"key": "8_manual_override", "label": "Front Desk & Manual Check-in", "category": "Reception", "description": "Desk operations for manual visitor check-ins, badge printing, and walk-in handling."},
+    {"key": "21_reassign_guests", "label": "Reassign Guests", "category": "Reception", "description": "Transfer waiting visitors to other available team members or hosts."},
+    {"key": "13_personal_queue", "label": "Personal Visitor Queue", "category": "Host", "description": "Host dashboard for personal guest appointments, pre-registration, and meeting status."},
+    {"key": "15_manage_availability", "label": "Schedule Management", "category": "Host", "description": "Set working hours, availability status (Available, In Meeting, OOO), and shifts."},
+    {"key": "17_kiosk_communication", "label": "Kiosk Two-Way Comms", "category": "Host", "description": "Real-time communication and custom quick replies directly to the front kiosk."},
+    {"key": "19_notification_feed", "label": "Arrival Alerts & Notifications", "category": "Host", "description": "Real-time arrival notification bell and slide-out feed for guest arrivals and updates."},
+    {"key": "4_manage_directory", "label": "Staff & Host Directory Management", "category": "Administration", "description": "Manually add, edit, or remove employee profiles and directory sync."},
+    {"key": "5_compliance_reports", "label": "Compliance & Audit Reports", "category": "Administration", "description": "Access historical visitor records, security compliance audits, and data exports."},
+    {"key": "6_manage_roles", "label": "User & Role Management", "category": "Administration", "description": "Provision user accounts, configure roles, and assign granular permissions."},
+    {"key": "20_kiosk_customization", "label": "Kiosk Branding & Content", "category": "Administration", "description": "Configure front desk kiosk greetings, themes, background media, and interface text."},
+    {"key": "22_ai_assistant", "label": "AI Executive Assistant", "category": "Intelligence", "description": "Natural language analytical assistant for real-time visitor traffic and facility insights."}
 ]
 
 DEFAULT_ROLE_PERMISSIONS: Dict[str, List[str]] = {
     "SUPER_ADMIN": [
-        "1_central_ops", "2_live_stream", "3_evacuation_roster", "4_manage_directory", 
-        "5_compliance_reports", "6_manage_roles", "7_global_lobby_view", "8_manual_override", 
-        "9_manage_badges", "10_manage_checkout", "11_monitor_watchlists", "12_host_followup",
-        "13_personal_queue", "14_pre_register", "15_manage_availability", "16_arrival_alerts",
-        "17_kiosk_communication", "18_meeting_status", "20_kiosk_customization", "22_ai_assistant"
+        "1_central_ops", "4_manage_directory", "5_compliance_reports", 
+        "6_manage_roles", "8_manual_override", "13_personal_queue", 
+        "15_manage_availability", "17_kiosk_communication", "19_notification_feed",
+        "20_kiosk_customization", "21_reassign_guests", "22_ai_assistant"
     ],
     "ADMIN": [
-        "1_central_ops", "2_live_stream", "3_evacuation_roster", "4_manage_directory", 
-        "5_compliance_reports", "6_manage_roles", "20_kiosk_customization", "22_ai_assistant"
+        "1_central_ops", "4_manage_directory", "5_compliance_reports", 
+        "6_manage_roles", "19_notification_feed", "20_kiosk_customization", "22_ai_assistant"
     ],
     "RECEPTION": [
-        "7_global_lobby_view", "8_manual_override", "9_manage_badges", "10_manage_checkout", 
-        "11_monitor_watchlists", "12_host_followup"
+        "1_central_ops", "8_manual_override", "21_reassign_guests", "17_kiosk_communication", "19_notification_feed"
     ],
     "HOST": [
-        "13_personal_queue", "14_pre_register", "15_manage_availability", "16_arrival_alerts",
-        "17_kiosk_communication", "18_meeting_status"
+        "13_personal_queue", "15_manage_availability", "17_kiosk_communication", "19_notification_feed"
     ],
     "OTHER": []
 }

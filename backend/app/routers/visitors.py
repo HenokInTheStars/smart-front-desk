@@ -154,11 +154,14 @@ async def kiosk_checkin(request: Request, payload: CheckInRequest, background_ta
 
         # 4. Create appointment linked to the AI-assigned host
         if host:
+            now_utc = datetime.now(timezone.utc).replace(microsecond=0)
             assigned_source = await get_checkin_source(request, db)
             appointment = Appointment(
                 visitor_id=visitor.id,
                 host_id=host.id,
-                scheduled_time=datetime.now(timezone.utc).replace(microsecond=0),
+                scheduled_time=now_utc,
+                checked_in_at=now_utc,
+                checkin_duration_seconds=payload.checkin_duration_seconds,
                 status="CHECKED_IN",
                 source=assigned_source,
                 notes=f"Purpose: {payload.purpose}\nNotes: {payload.notes or ''}"
@@ -180,12 +183,19 @@ async def kiosk_checkin(request: Request, payload: CheckInRequest, background_ta
                 if meeting_res.scalars().first():
                     host_availability_status = 3
 
+            is_delivery = (payload.purpose or "").strip().lower() == "delivery" or "delivery" in (payload.purpose or "").lower()
+
             if host.phone and host_availability_status in (1, 3):
-                message = f"Smart Front Desk: {visitor.full_name} is here to see you for {payload.purpose}."
+                if is_delivery:
+                    message = f"Smart Front Desk: A package was dropped off at the Front Desk for you by {visitor.full_name}. Please pick it up at reception."
+                else:
+                    message = f"Smart Front Desk: {visitor.full_name} is here to see you for {payload.purpose}."
                 background_tasks.add_task(send_sms, host.phone, message)
 
         if payload.phone:
-            if host_availability_status in (1, 3):
+            if is_delivery:
+                visitor_msg = "Smart Front Desk: Package received at the Front Desk. The recipient has been notified."
+            elif host_availability_status in (1, 3):
                 visitor_msg = "Smart Front Desk: The host will notify you to enter."
             else:
                 visitor_msg = "Smart Front Desk: You will be notified."

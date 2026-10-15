@@ -57,6 +57,7 @@ class CheckInRequest(BaseModel):
     purpose: Optional[str] = None
     notes: Optional[str] = None
     hostName: Optional[str] = None
+    checkin_duration_seconds: Optional[int] = None
 
     @field_validator('firstName', 'lastName', 'company', mode='before', check_fields=False)
     @classmethod

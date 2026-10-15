@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import HostUnavailableModal from './HostUnavailableModal';
 import { z } from 'zod';
 import { checkinVisitor, scheduleSlot } from '@/lib/api/visitors';
@@ -10,6 +10,7 @@ interface CheckinFlowProps {
 }
 
 export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
+    const checkinStartTime = useRef<number>(Date.now());
     const [formStep, setFormStep] = useState(1);
     const [formError, setFormError] = useState('');
     const [isEvaluating, setIsEvaluating] = useState(false);
@@ -62,14 +63,17 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
         if (e) e.preventDefault();
 
         if (formStep === 1) {
-            try {
-                checkinSchema.parse({
-                    firstName: formData.firstName.trim(),
-                    lastName: formData.lastName.trim(),
-                    phone: formData.phone.trim() ? normalizeEthiopianPhone(formData.phone) : undefined
-                });
-            } catch (err: any) {
-                setFormError(err.errors[0].message);
+            const result = checkinSchema.safeParse({
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                phone: formData.phone.trim() ? normalizeEthiopianPhone(formData.phone) : undefined
+            });
+
+            if (!result.success) {
+                const errorMsg = result.error.issues?.[0]?.message 
+                    || (result.error as any).errors?.[0]?.message 
+                    || 'Please check your input details.';
+                setFormError(errorMsg);
                 return;
             }
 
@@ -130,9 +134,11 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
 
     const executeCheckin = async (explicitHost?: string, explicitDept?: string) => {
         try {
+            const durationSeconds = Math.max(1, Math.round((Date.now() - checkinStartTime.current) / 1000));
             const data = await checkinVisitor({
                 ...formData,
-                hostName: explicitHost || formData.hostName
+                hostName: explicitHost || formData.hostName,
+                checkin_duration_seconds: durationSeconds
             });
             setAssignedHostInfo({
                 host: explicitHost || data.assigned_host || 'General Reception',
@@ -482,6 +488,7 @@ export default function CheckinFlow({ setScreen }: CheckinFlowProps) {
                             <button
                                 type="submit"
                                 form="step-form"
+                                onClick={(e) => handleNext(e)}
                                 disabled={isEvaluating}
                                 className="bg-[#0058be] hover:bg-[#004294] text-white font-semibold py-2.5 px-6 rounded-lg flex items-center gap-2 transition-all hover:scale-105 shadow-md disabled:opacity-70"
                             >

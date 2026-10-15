@@ -200,14 +200,11 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* Unified Command Center Container with framed viewport height */}
-      <div className="flex flex-col h-[calc(100vh-13rem)] min-h-[580px] bg-card border border-border rounded-[2rem] shadow-2xl overflow-hidden relative">
+      {/* Unified Command Center Container with standardized radius and shadow */}
+      <div className="flex flex-col h-[calc(100vh-13rem)] min-h-[580px] bg-card border border-border rounded-3xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden relative">
         
-        {/* Subtle top gradient glow for premium feel */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent"></div>
-
         {/* Command Center Header */}
-        <div className="flex items-center justify-between px-8 py-5 border-b border-border/50 bg-card z-10 shrink-0">
+        <div className="flex items-center justify-between px-8 py-5 border-b border-border bg-card z-10 shrink-0">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-foreground">Security Operations Center</h2>
             <p className="text-[12px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">Physical Access & System Telemetry</p>
@@ -218,7 +215,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
         <div className="flex flex-col flex-1 overflow-hidden min-h-0">
           
           {/* Top Horizontal Navigation */}
-          <div className="flex items-center gap-2 px-8 border-b border-border/50 bg-muted/10 z-10 pt-4 overflow-x-auto custom-scrollbar shrink-0">
+          <div className="flex items-center gap-2 px-8 border-b border-border bg-muted/20 z-10 pt-4 overflow-x-auto custom-scrollbar shrink-0">
              
              <button 
                onClick={() => setMainTab('lobby')}
@@ -236,7 +233,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
           </div>
           
           {/* Main Content Area */}
-          <div className="flex-1 overflow-hidden flex flex-col bg-card/50 relative min-h-0">
+          <div className="flex-1 overflow-hidden flex flex-col bg-muted/10 relative min-h-0">
              
              {mainTab === 'lobby' && (
                <div className="p-8 overflow-y-auto w-full h-full custom-scrollbar">
@@ -250,7 +247,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                <div className="flex flex-col h-full animate-in fade-in duration-300 min-h-0">
                  
                  {/* Table Header Controls */}
-                 <div className="px-8 py-4 border-b border-border/40 flex items-center justify-between shrink-0 bg-card">
+                 <div className="px-8 py-4 border-b border-border flex items-center justify-between shrink-0 bg-card">
                     <div>
                       <h3 className="text-lg font-bold text-foreground">
                         Host Actions & Approvals
@@ -269,7 +266,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                           setSearchQuery(e.target.value);
                           setMainCurrentPage(1);
                         }}
-                        className="pl-9 pr-8 py-2 border border-border/50 rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all shadow-sm"
+                        className="pl-9 pr-8 py-2 border border-border rounded-xl text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                       />
                       {searchQuery && (
                         <button
@@ -330,7 +327,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                              <col className="w-12" />
                            </colgroup>
                            <thead className="bg-muted/10 sticky top-0 z-10 backdrop-blur-md">
-                             <tr className="border-b border-border/40">
+                             <tr className="border-b border-border">
                                <th className="py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center">#</th>
                                <th className="py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Event Detail</th>
                                <th className="py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Timestamp</th>
@@ -338,7 +335,7 @@ export default function CentralOps({ currentUser }: CentralOpsProps) {
                                <th className="py-3.5 px-4 text-[11px] font-bold text-muted-foreground uppercase tracking-wider text-center"></th>
                              </tr>
                            </thead>
-                           <tbody className="divide-y divide-border/20">
+                           <tbody className="divide-y divide-border">
                              {filteredLogs.length === 0 && (
                                <tr>
                                  <td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">

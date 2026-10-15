@@ -3,7 +3,8 @@
 import React from 'react';
 import {
   FileText, Download, BarChart3, Clock, Calendar, Search,
-  Users, Building, UserCheck, Activity, AlertCircle, Calendar as CalendarIcon, Shield, X
+  Users, Building, UserCheck, Activity, AlertCircle, Calendar as CalendarIcon, Shield, X,
+  CheckCircle2, AlertTriangle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -12,7 +13,7 @@ import {
   Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid,
   LineChart, Line, AreaChart, Area,
   PieChart as RePieChart, Pie, Cell,
-  Legend, LabelList,
+  Legend, LabelList, ReferenceLine,
 } from 'recharts';
 
 interface ComplianceReportsProps {
@@ -135,18 +136,20 @@ const MOCK_NOSHOW = [
 const TICK = { fontSize: 11, fill: '#64748b' };
 const GRID = '#e2e8f0';
 
-function ChartCard({ title, subtitle, children, wide }: {
-  title: string; subtitle: string; children: React.ReactNode; wide?: boolean;
+function ChartCard({ title, subtitle, children, wide, action }: {
+  title: string; subtitle: string; children: React.ReactNode; wide?: boolean; action?: React.ReactNode;
 }) {
   return (
-    <div className={'bg-white border border-slate-200 rounded-2xl p-6 flex flex-col shadow-sm hover:shadow-md transition-shadow' + (wide ? ' lg:col-span-2' : '')}>
-      <div className="mb-5">
-        <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-        <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+    <div className={'bg-white border border-slate-200 rounded-2xl p-6 flex flex-col shadow-sm hover:shadow-md transition-shadow' + (wide ? ' md:col-span-2' : '')}>
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-slate-800">{title}</h3>
+          <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
       </div>
       <div className="flex-1">{children}</div>
-
-          </div>
+    </div>
   );
 }
 
@@ -199,6 +202,9 @@ const ChartTooltip = ({ active, payload, label, unit = '' }: any) => {
       {payload.map((p: any) => (
         <p key={p.name} className="font-bold text-slate-800">
           {p.value}{unit} <span className="text-slate-400 font-normal">{p.name !== 'value' ? p.name : ''}</span>
+          {p.payload?.percentage !== undefined && (
+            <span className="text-slate-500 font-normal ml-1">({p.payload.percentage}%)</span>
+          )}
         </p>
       ))}
 
@@ -253,9 +259,19 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
   const deptTraffic = analytics?.deptTraffic || [];
   const preregistered = analytics?.preregistered || [];
   const visitorCategories = analytics?.visitorCategories || [];
-  const visitPurpose = analytics?.visitPurpose || [];
+  const rawVisitPurpose = analytics?.visitPurpose || [];
+  const visitPurpose = React.useMemo(() => {
+    return rawVisitPurpose.map((item: any) => ({
+      ...item,
+      purpose: item.purpose || item.name || 'Other',
+      count: item.count !== undefined ? item.count : (item.value ?? 0)
+    }));
+  }, [rawVisitPurpose]);
   const hostResponsiveness = analytics?.hostResponsiveness || [];
   const slaBreaches = analytics?.slaBreaches || [];
+  const totalBreaches = React.useMemo(() => {
+    return slaBreaches.reduce((acc: number, item: any) => acc + (item.breaches || 0), 0);
+  }, [slaBreaches]);
   const checkinDuration = analytics?.checkinDuration || [];
   const visitLength = analytics?.visitLength || [];
   const peakDays = analytics?.peakDays || [];
@@ -520,30 +536,100 @@ export default function ComplianceReports({ currentUser }: ComplianceReportsProp
                             </div>
                           </ChartCard>
             
-                          <ChartCard title="Host Responsiveness" subtitle="Average minutes to acknowledge a guest arrival throughout the day">
-                            <ResponsiveContainer width="100%" height={H}>
-                              <LineChart data={hostResponsiveness} margin={{ top: 4, right: 12, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
-                                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={TICK} />
-                                <YAxis axisLine={false} tickLine={false} tick={TICK} unit=" m" />
-                                <RechartsTooltip content={<ChartTooltip unit=" min" />} />
-                                <Line type="monotone" dataKey="wait" name="Avg response" stroke={P.amber} strokeWidth={2.5} dot={{ r: 3, fill: P.amber }} activeDot={{ r: 5 }} />
-                              </LineChart>
-                            </ResponsiveContainer>
-                          </ChartCard>
-            
-                          <ChartCard title="SLA Breaches by Host" subtitle="Instances where a guest waited over 10 minutes before admission">
-                            <ResponsiveContainer width="100%" height={H}>
-                              <BarChart data={slaBreaches} margin={{ top: 0, right: 8, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
-                                <XAxis dataKey="host" axisLine={false} tickLine={false} tick={TICK} />
-                                <YAxis axisLine={false} tickLine={false} tick={TICK} />
-                                <RechartsTooltip content={<ChartTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                                <Bar dataKey="breaches" name="Breaches" fill={P.rose} radius={[4, 4, 0, 0]}>
-                                  <LabelList dataKey="breaches" position="top" style={{ fontSize: 10, fill: '#64748b' }} />
-                                </Bar>
-                              </BarChart>
-                            </ResponsiveContainer>
+                          <ChartCard
+                            wide
+                            title="Host Responsiveness & SLA Performance"
+                            subtitle="Hourly average response time plotted against the 10-minute SLA benchmark"
+                            action={
+                              totalBreaches === 0 ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  100% SLA Adherence (0 Breaches)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 shadow-xs">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                                  {totalBreaches} {totalBreaches === 1 ? 'SLA Breach' : 'SLA Breaches'} (&gt; 10 min)
+                                </span>
+                              )
+                            }
+                          >
+                            {!hostResponsiveness || hostResponsiveness.length === 0 ? (
+                              <div style={{ height: H }} className="flex flex-col items-center justify-center text-slate-400 space-y-3 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 m-4">
+                                <Clock className="w-8 h-8 opacity-20" />
+                                <span className="text-sm font-medium">No host response time recorded in this period</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col justify-between h-full">
+                                <ResponsiveContainer width="100%" height={H}>
+                                  <LineChart data={hostResponsiveness} margin={{ top: 12, right: 32, left: -15, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={GRID} />
+                                    <XAxis dataKey="time" axisLine={false} tickLine={false} tick={TICK} />
+                                    <YAxis
+                                      axisLine={false}
+                                      tickLine={false}
+                                      tick={TICK}
+                                      unit=" m"
+                                      domain={[0, (dataMax: number) => Math.max(12, Math.ceil((dataMax || 0) + 2))]}
+                                    />
+                                    <RechartsTooltip content={<ChartTooltip unit=" min" />} />
+                                    <ReferenceLine
+                                      y={10}
+                                      stroke={P.rose}
+                                      strokeDasharray="4 4"
+                                      strokeWidth={1.5}
+                                      label={{
+                                        value: '10 min SLA Target',
+                                        position: 'insideTopRight',
+                                        fill: P.rose,
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        offset: 8
+                                      }}
+                                    />
+                                    <Line
+                                      type="monotone"
+                                      dataKey="wait"
+                                      name="Avg response"
+                                      stroke={P.amber}
+                                      strokeWidth={2.5}
+                                      dot={{ r: 3.5, fill: P.amber }}
+                                      activeDot={{ r: 6 }}
+                                    />
+                                  </LineChart>
+                                </ResponsiveContainer>
+
+                                <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                  {totalBreaches === 0 ? (
+                                    <div className="flex items-center gap-2 text-slate-600">
+                                      <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                      <span>All admitted visitors were received under the 10-minute threshold. No host SLA penalties.</span>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2 w-full">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-semibold text-rose-600 flex items-center gap-1.5">
+                                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                          Breaches by Host (wait &gt; 10 min):
+                                        </span>
+                                        <span className="text-slate-400">{slaBreaches.length} host{slaBreaches.length === 1 ? '' : 's'} affected</span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2 pt-1">
+                                        {slaBreaches.map((sb: any) => (
+                                          <div key={sb.host} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-100 text-xs text-rose-900">
+                                            <span className="font-medium text-slate-700">{sb.host}</span>
+                                            <span className="px-1.5 py-0.5 rounded bg-rose-600 text-white font-bold text-[10px]">
+                                              {sb.breaches} {sb.breaches === 1 ? 'breach' : 'breaches'}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  <span className="text-slate-400 shrink-0 text-[11px] font-medium">SLA Threshold: 10m 00s</span>
+                                </div>
+                              </div>
+                            )}
                           </ChartCard>
             
                         </div>

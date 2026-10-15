@@ -6,7 +6,7 @@ import {
   Users, Calendar as CalendarIcon, Clock, Shield, Settings, 
   LogOut, Building, UserCheck, Lock, Activity,
   AlertCircle, FileText, Smartphone, Monitor, BadgeCheck, Bell, MessageSquare,
-  Sun, Moon, X, BellRing, Bot
+  Sun, Moon, X, BellRing, Bot, ArrowRight
 } from 'lucide-react';
 
 import GlobalLobbyView from '@/components/portal/GlobalLobbyView';
@@ -44,7 +44,7 @@ export default function UnifiedPortal() {
   const [activeTab, setActiveTab] = useState<string>('');
   const [sidePanel, setSidePanel] = useState<'notifications' | 'messages' | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [toasts, setToasts] = useState<{id: string, title: string, message: string}[]>([]);
+  const [toasts, setToasts] = useState<{id: string, title: string, message: string, appointment?: any}[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -99,10 +99,13 @@ export default function UnifiedPortal() {
       if (isPollingRef.current) return;
       isPollingRef.current = true;
       try {
-        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments`;
-        // If not global lobby view, filter to just this user's appointments
-        if (!currentUser.permissions?.includes('7_global_lobby_view') && currentUser.numeric_host_id) {
-           url += `?host_id=${currentUser.numeric_host_id}`;
+        const hasGlobalView = currentUser?.permissions?.includes('7_global_lobby_view') || 
+          ['SUPER_ADMIN', 'ADMIN', 'RECEPTION', 'SECURITY'].includes(currentUser?.role);
+
+        let url = `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/appointments?limit=100`;
+        // Host personalization: if not global lobby viewer, filter to this host
+        if (!hasGlobalView && currentUser?.numeric_host_id) {
+           url += `&host_id=${currentUser.numeric_host_id}`;
         }
         
         const res = await fetch(url, {
@@ -114,11 +117,20 @@ export default function UnifiedPortal() {
           const raw = await res.json();
           const apts = raw.data || [];
 
+          // Host isolation: guarantee Kirubel only sees his own visitors
+          const userApts = !hasGlobalView
+            ? apts.filter((a: any) => 
+                (currentUser?.numeric_host_id && a.host_id === currentUser.numeric_host_id) ||
+                (currentUser?.full_name && a.host?.full_name?.toLowerCase() === currentUser.full_name?.toLowerCase()) ||
+                (currentUser?.employee_id && a.host?.employee_id === currentUser.employee_id)
+              )
+            : apts;
+
           // Compute unread count based on last seen timestamp in localStorage
           const lastRead = getLastReadTime(currentUser?.id);
-          const activeUnread = apts.filter((a: any) => {
-            if (a.status !== 'CHECKED_IN' && a.status !== 'EXPECTED') return false;
-            const time = new Date(a.created_at || a.scheduled_time).getTime();
+          const activeUnread = userApts.filter((a: any) => {
+            if (a.status !== 'CHECKED_IN' && a.status !== 'EXPECTED' && a.status !== 'NEEDS_REASSIGNMENT') return false;
+            const time = new Date(a.created_at || a.checked_in_at || a.scheduled_time).getTime();
             return time > lastRead;
           }).length;
 
@@ -127,11 +139,11 @@ export default function UnifiedPortal() {
           }
           
           if (!initialFetchDone.current) {
-             seenIdsRef.current = new Set(apts.map((a: any) => `${a.id}-${a.status}`));
+             seenIdsRef.current = new Set(userApts.map((a: any) => `${a.id}-${a.status}`));
              initialFetchDone.current = true;
           } else {
              const now = new Date().getTime();
-             const newApts = apts.filter((a: any) => {
+             const newApts = userApts.filter((a: any) => {
                const key = `${a.id}-${a.status}`;
                if (seenIdsRef.current.has(key)) return false;
                
@@ -144,8 +156,8 @@ export default function UnifiedPortal() {
                  if (now - schedTime > 24 * 60 * 60 * 1000) isRecent = false;
                }
 
-               if ((a.status === 'CHECKED_IN' || a.status === 'EXPECTED') && isRecent) {
-                 seenIdsRef.current.add(key); // Deduplicate immediately for any concurrent sync logic
+               if ((a.status === 'CHECKED_IN' || a.status === 'EXPECTED' || a.status === 'NEEDS_REASSIGNMENT') && isRecent) {
+                 seenIdsRef.current.add(key);
                  return true;
                } else {
                  seenIdsRef.current.add(key);
@@ -154,18 +166,54 @@ export default function UnifiedPortal() {
              });
 
              if (newApts.length > 0) {
-               // We no longer need to forEach add to seenIdsRef here since we do it in the filter
                const newToasts = newApts.map((apt: any) => {
-                 const title = apt.status === 'CHECKED_IN' ? 'Guest Arrived' : 'New Guest Booking';
-                 const hostName = apt.host?.full_name || 'you';
+                 const isMyVisitor = !hasGlobalView || (
+                   currentUser?.full_name && apt.host?.full_name?.toLowerCase() === currentUser.full_name?.toLowerCase()
+                 );
                  const guestName = apt.visitor?.full_name || 'A guest';
-                 const actionWord = apt.status === 'CHECKED_IN' ? 'arrived for their' : 'booked a';
-                 const msg = `${guestName} has ${actionWord} appointment with ${hostName}.`;
-                 return { id: Math.random().toString(), title, message: msg };
+                 const company = apt.visitor?.company ? ` (${apt.visitor.company})` : '';
+                 const hostName = apt.host?.full_name || 'you';
+                 
+                 const isDelivery = (apt.notes && apt.notes.toLowerCase().includes('delivery')) ||
+                   (apt.visitor?.company && apt.visitor.company.toLowerCase().includes('delivery')) ||
+                   (apt.purpose && apt.purpose.toLowerCase().includes('delivery'));
+
+                  let title = '';
+                  let msg = '';
+                  if (apt.status === 'CHECKED_IN') {
+                    if (isDelivery) {
+                      title = isMyVisitor ? 'Package Arrived at Front Desk' : `Package Delivered for ${hostName}`;
+                      msg = isMyVisitor 
+                        ? `A package dropped off by ${guestName} is waiting for your pickup at the Front Desk.` 
+                        : `A package dropped off by ${guestName} for ${hostName} is waiting at the Front Desk.`;
+                    } else {
+                      title = isMyVisitor ? `Your Guest Arrived` : `${guestName} Arrived`;
+                      msg = isMyVisitor 
+                        ? `${guestName}${company} is waiting in the reception lobby for you.` 
+                        : `${guestName}${company} arrived for their appointment with ${hostName}.`;
+                    }
+                  } else if (apt.status === 'NEEDS_REASSIGNMENT') {
+                    if (isDelivery) {
+                      title = isMyVisitor ? 'Package Routed to You' : 'Package Reassignment Required';
+                      msg = `A delivery from ${guestName} was assigned to your schedule.`;
+                    } else {
+                      title = isMyVisitor ? `Guest Reassigned to You` : `Reassignment Required`;
+                      msg = `${guestName}${company} was assigned to your schedule.`;
+                    }
+                  } else {
+                    title = isMyVisitor ? `New Booking with You` : `New Guest Booking`;
+                    msg = `${guestName}${company} booked an appointment with ${isMyVisitor ? 'you' : hostName}.`;
+                  }
+
+                 return { 
+                   id: Math.random().toString(), 
+                   title, 
+                   message: msg,
+                   appointment: apt 
+                 };
                });
                
                setToasts(prev => {
-                 // Check if a toast with this message recently exists to avoid spam
                  const existingMessages = new Set(prev.map(t => t.message));
                  const filteredNewToasts = newToasts.filter((t: any) => !existingMessages.has(t.message));
                  return [...prev, ...filteredNewToasts];
@@ -173,7 +221,7 @@ export default function UnifiedPortal() {
                
                setTimeout(() => {
                  setToasts(prev => prev.filter(t => !newToasts.find((nt: any) => nt.id === t.id)));
-               }, 6000);
+               }, 7000);
 
                if (typeof window !== 'undefined' && 'Notification' in window) {
                  if (Notification.permission === 'granted') {
@@ -186,14 +234,11 @@ export default function UnifiedPortal() {
                        console.error("Browser notification failed:", err);
                      }
                    });
-                 } else {
-                   console.log("Desktop notification skipped. Permission is:", Notification.permission);
                  }
                }
              }
 
-             // Also make sure we add ALL new statuses to seenIdsRef so they don't trigger later
-             apts.forEach((a: any) => seenIdsRef.current.add(`${a.id}-${a.status}`));
+             userApts.forEach((a: any) => seenIdsRef.current.add(`${a.id}-${a.status}`));
           }
         }
       } catch (err) {
@@ -220,8 +265,9 @@ export default function UnifiedPortal() {
       es.addEventListener('checkin', (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          const isHost = currentUser.role === 'HOST';
-          if (isHost && currentUser.full_name && data.assigned_host) {
+          const hasGlobalView = currentUser.permissions?.includes('7_global_lobby_view') || 
+            ['SUPER_ADMIN', 'ADMIN', 'RECEPTION', 'SECURITY'].includes(currentUser.role);
+          if (!hasGlobalView && currentUser.full_name && data.assigned_host) {
             if (data.assigned_host.toLowerCase() !== currentUser.full_name.toLowerCase()) {
               return; // Filter out notifications not intended for this host
             }
@@ -393,11 +439,21 @@ export default function UnifiedPortal() {
 
   const settingsRoles = [
     { key: '15_manage_availability', label: 'My Schedule', icon: <Clock size={16} /> },
-    { key: '4_manage_directory', label: 'Employee Directory', icon: <FileText size={16} /> },
+    { key: '4_manage_directory', label: 'Staff Directory', icon: <Building size={16} /> },
     { key: '6_manage_roles', label: 'User & Role Mgt', icon: <Users size={16} /> },
     { key: '20_kiosk_customization', label: 'Content Management', icon: <Monitor size={16} /> },
     { key: 'settings', label: 'Security & Settings', icon: <Settings size={16} /> }
   ].filter(item => hasPerm(item.key) || item.key === 'settings');
+
+  const handleSelectAppointmentFromNotification = (apt?: any) => {
+    markNotificationsAsRead();
+    setSidePanel(null);
+    if (hasPerm('13_personal_queue')) {
+      setActiveTab('13_personal_queue');
+    } else if (hasPerm('1_central_ops') || hasPerm('7_global_lobby_view')) {
+      setActiveTab('1_central_ops');
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -411,7 +467,7 @@ export default function UnifiedPortal() {
       case '15_manage_availability': return <ManageAvailability currentUser={currentUser} />;
       case '21_reassign_guests': return <ReassignGuests currentUser={currentUser} />;
       case '17_kiosk_communication': return <KioskCommunication currentUser={currentUser} />;
-      case '19_notification_feed': return <NotificationFeed currentUser={currentUser} />;
+      case '19_notification_feed': return <NotificationFeed currentUser={currentUser} onSelectAppointment={handleSelectAppointmentFromNotification} />;
       case '22_ai_assistant': return <AIAssistant currentUser={currentUser} />;
       case 'settings': return <SecuritySettings currentUser={currentUser} />;
       
@@ -619,25 +675,54 @@ export default function UnifiedPortal() {
              </div>
              
              <div className="flex-1 overflow-y-auto overflow-x-hidden">
-               {sidePanel === 'notifications' && <NotificationFeed currentUser={currentUser} isPanel={true} />}
+               {sidePanel === 'notifications' && <NotificationFeed currentUser={currentUser} isPanel={true} onSelectAppointment={handleSelectAppointmentFromNotification} />}
                {sidePanel === 'messages' && <KioskCommunication currentUser={currentUser} isPanel={true} />}
              </div>
            </div>
         </div>
       )}
       {/* In-App Toast Container */}
-      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2">
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full px-4 sm:px-0 pointer-events-none">
         {toasts.map(toast => (
-          <div key={toast.id} className="bg-card border border-border shadow-lg rounded-xl p-4 w-80 animate-in slide-in-from-right-8 fade-in duration-300">
-            <div className="flex justify-between items-start mb-1">
+          <div 
+            key={toast.id}
+            onClick={() => {
+              handleSelectAppointmentFromNotification(toast.appointment);
+              setToasts(p => p.filter(t => t.id !== toast.id));
+            }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleSelectAppointmentFromNotification(toast.appointment);
+                setToasts(p => p.filter(t => t.id !== toast.id));
+              }
+            }}
+            className="pointer-events-auto bg-card border border-border hover:border-primary/60 shadow-2xl rounded-2xl p-4 cursor-pointer transition-all hover:scale-[1.02] animate-in slide-in-from-right-8 fade-in duration-300 group"
+          >
+            <div className="flex justify-between items-start mb-1.5">
               <h4 className="font-bold text-foreground text-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <Bell size={14} className="text-primary" /> {toast.title}
               </h4>
-              <button onClick={() => setToasts(p => p.filter(t => t.id !== toast.id))} className="text-muted-foreground hover:text-foreground">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setToasts(p => p.filter(t => t.id !== toast.id));
+                }} 
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted/50 transition-colors"
+                title="Dismiss"
+              >
                 <X size={14} />
               </button>
             </div>
-            <p className="text-xs text-muted-foreground">{toast.message}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{toast.message}</p>
+            <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[11px] font-semibold text-primary">
+              <span>Open in Queue</span>
+              <span className="flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+                View visitor &rarr;
+              </span>
+            </div>
           </div>
         ))}
       </div>

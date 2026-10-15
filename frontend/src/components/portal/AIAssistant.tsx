@@ -120,10 +120,42 @@ export default function AIAssistant({ currentUser }: AIAssistantProps) {
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleCopy = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = async (id: string, text: string) => {
+    let success = false;
+
+    // Modern asynchronous clipboard API
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        success = true;
+      } catch (err) {
+        console.warn('navigator.clipboard.writeText failed, trying fallback:', err);
+      }
+    }
+
+    // Reliable fallback for insecure contexts, older browsers, or restrictive iframes
+    if (!success && typeof document !== 'undefined') {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        textarea.setAttribute('readonly', '');
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+        success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+      } catch (err) {
+        console.error('execCommand fallback failed:', err);
+      }
+    }
+
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setTimeout(() => {
+      setCopiedId((curr) => (curr === id ? null : curr));
+    }, 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -285,29 +317,32 @@ export default function AIAssistant({ currentUser }: AIAssistantProps) {
                       isUser ? 'border-primary-foreground/20 text-primary-foreground/80' : 'border-border/60 text-muted-foreground'
                     }`}>
                       <div className="flex items-center gap-1">
-                        <Clock size={11} />
+                        {!isUser && <Clock size={11} />}
                         <span>{msg.timestamp}</span>
                       </div>
 
-                      {!isUser && (
-                        <button
-                          onClick={() => handleCopy(msg.id, msg.content)}
-                          className="hover:text-foreground transition-colors flex items-center gap-1 p-0.5 rounded"
-                          title="Copy response"
-                        >
-                          {copiedId === msg.id ? (
-                            <>
-                              <Check size={12} className="text-emerald-500" />
-                              <span className="text-emerald-500">Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy size={12} />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleCopy(msg.id, msg.content)}
+                        className={`transition-colors flex items-center gap-1 p-0.5 rounded ${
+                          isUser 
+                            ? 'text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10' 
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        }`}
+                        title={isUser ? "Copy question" : "Copy response"}
+                        aria-label={isUser ? "Copy question" : "Copy response"}
+                      >
+                        {copiedId === msg.id ? (
+                          <>
+                            <Check size={12} className={isUser ? "text-primary-foreground" : "text-emerald-500"} />
+                            <span className={isUser ? "text-primary-foreground font-medium" : "text-emerald-500"}>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
 

@@ -154,7 +154,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-4 bg-card px-5 py-4 rounded-2xl border border-border shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative overflow-hidden">
+        <div className="col-span-12 md:col-span-4 bg-card px-5 py-4 rounded-2xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition-shadow relative overflow-hidden group">
            <p className="text-[13px] font-semibold text-muted-foreground mb-1.5">Expected Today</p>
            <div className="flex items-end gap-2">
             <h3 className="text-3xl font-black text-foreground leading-none">{expectedVisitors.length}</h3>
@@ -167,7 +167,7 @@ export default function GlobalLobbyView({ currentUser }: GlobalLobbyViewProps) {
       <div className="grid grid-cols-12 gap-6">
         
         {/* Left Col: Unified Live Security & Visitor Stream (8 / 12 columns) */}
-        <div className="col-span-12 xl:col-span-8 bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+        <div className="col-span-12 xl:col-span-8 bg-card border border-border rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col h-[600px]">
           <div className="bg-muted/50 px-5 py-4 flex items-center justify-between border-b border-border">
              <div className="flex items-center gap-3">
                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>

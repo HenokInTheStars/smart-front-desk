@@ -88,6 +88,7 @@ class Appointment(Base):
     source = Column(appointment_source_enum, server_default="WALK_IN", nullable=False)
     notes = Column(Text, nullable=True)
     checked_in_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    checkin_duration_seconds = Column(Integer, nullable=True)
     admitted_at = Column(DateTime(timezone=True), nullable=True)
     checked_out_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

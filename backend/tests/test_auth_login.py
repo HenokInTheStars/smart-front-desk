@@ -73,8 +73,8 @@ async def test_admin_and_reception_login_success(client_transport):
         assert rec_me.status_code == 200
         rec_data = rec_me.json()["data"]
         assert rec_data["role"] == "RECEPTION"
-        assert "7_global_lobby_view" in rec_data["permissions"]
-        assert "9_manage_badges" in rec_data["permissions"]
+        assert "1_central_ops" in rec_data["permissions"]
+        assert "8_manual_override" in rec_data["permissions"]
 
 
 @pytest.mark.asyncio
